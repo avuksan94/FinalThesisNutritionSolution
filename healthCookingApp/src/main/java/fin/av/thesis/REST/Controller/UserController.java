@@ -83,10 +83,10 @@ public class UserController {
         return createUserAndAssignRole(userRequestDTO, Role.ROLE_ADMIN);
     }
 
-    private Mono<ResponseEntity<UserResponseDTO>> createUserAndAssignRole(UserRequestDTO userRequestDTO, Role roleAdmin) {
+    private Mono<ResponseEntity<UserResponseDTO>> createUserAndAssignRole(UserRequestDTO userRequestDTO, Role role) {
         return userService.save(userRequestMapper.DTOUserReqToUser(userRequestDTO))
                 .flatMap(savedUser -> {
-                    Authority authority = new Authority(savedUser.getId(), roleAdmin);
+                    Authority authority = new Authority(savedUser.getId(), role);
                     return authorityService.save(authority)
                             .then(Mono.just(savedUser));
                 })

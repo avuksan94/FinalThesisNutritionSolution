@@ -21,15 +21,15 @@ import java.util.stream.Collectors;
 @Service
 public class CustomUserDetailsService implements ReactiveUserDetailsService {
     private static final Logger logger = LoggerFactory.getLogger(CustomUserDetailsService.class);
-    private final UserRepository userRepository;
+    private final CustomUserServiceImpl userService;
 
-    public CustomUserDetailsService(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public CustomUserDetailsService(CustomUserServiceImpl userService) {
+        this.userService = userService;
     }
 
     @Override
     public Mono<UserDetails> findByUsername(String username) {
-        return userRepository.findByUsernameWithAuthorities(username)
+        return userService.findByUsernameWithAuthorities(username)
                 .switchIfEmpty(Mono.defer(() -> Mono.error(new UsernameNotFoundException("User not found with username: " + username))))
                 .map(user -> {
                     Set<GrantedAuthority> authorities = user.getAuthorities().stream()

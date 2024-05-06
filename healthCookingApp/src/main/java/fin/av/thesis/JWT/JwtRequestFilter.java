@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -45,7 +46,11 @@ public class JwtRequestFilter implements WebFilter {
                 userDetails, null, userDetails.getAuthorities());
         SecurityContextImpl securityContext = new SecurityContextImpl();
         securityContext.setAuthentication(authentication);
-        return ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext))
-                .get(chain.filter(exchange));
+
+        Mono<SecurityContext> securityContextMono = Mono.just(securityContext);
+
+        return chain.filter(exchange)
+                .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(securityContextMono));
     }
+
 }
