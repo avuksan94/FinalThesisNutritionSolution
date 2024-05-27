@@ -6,6 +6,9 @@ import fin.av.thesis.DAL.Document.OpenAI.ChatCompletionResponse;
 import fin.av.thesis.DAL.Document.OpenAI.DietPrompt;
 import fin.av.thesis.DAL.Document.OpenAI.RecipePrompt;
 import fin.av.thesis.DAL.PromptConsts;
+import fin.av.thesis.REST.Controller.RecipeGenController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -28,8 +31,11 @@ public class OpenAIServiceImpl implements OpenAIService {
     @Value("${openai.api.key}")
     private String apiKey;
 
+    private static final Logger log = LoggerFactory.getLogger(OpenAIServiceImpl.class);
+
     @Override
     public Mono<ChatCompletionResponse> generateRecipes(RecipePrompt recipePrompt) {
+        log.info("GENERATING RECIPE");
         return getChatCompletionResponse(buildRecipePrompt(recipePrompt));
     }
 

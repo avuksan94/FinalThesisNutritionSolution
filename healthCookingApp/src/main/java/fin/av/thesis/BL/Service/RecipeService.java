@@ -14,4 +14,5 @@ public interface RecipeService {
     Mono<Recipe> save(Recipe obj);
     Mono<Void> deleteById(String id);
     Mono<Void> deleteByHealthTrackerId(String healthTrackerId);
+    Mono<Void> softDeleteById(String id);
 }

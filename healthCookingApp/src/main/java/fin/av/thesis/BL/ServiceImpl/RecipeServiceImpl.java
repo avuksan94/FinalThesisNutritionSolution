@@ -66,4 +66,14 @@ public class RecipeServiceImpl implements RecipeService {
                     }
                 });
     }
+
+    @Override
+    public Mono<Void> softDeleteById(String id) {
+        return recipeRepository.findById(id)
+                .flatMap(recipe -> {
+                    recipe.setHealthTrackerId(null);
+                    return recipeRepository.save(recipe).then();
+                })
+                .switchIfEmpty(Mono.error(new CustomNotFoundException("Recipe with that ID was not found: " + id)));
+    }
 }

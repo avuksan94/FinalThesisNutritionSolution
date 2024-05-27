@@ -13,6 +13,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class IngredientEntryDTO {
     private String ingredientId;
+    private String name;
     @Min(value = 0, message = "Quantity must be non-negative!")
     private double quantity;
     @NotBlank(message = "Unit is required!")

@@ -27,6 +27,10 @@ public class Recipe {
 
     private String title;
     private String description;
+    private String diet;
+
+    @Field("created_with")
+    private String createdWith;
 
     private List<IngredientEntry> ingredients;
     private List<String> preparationSteps;
@@ -42,4 +46,6 @@ public class Recipe {
 
     @Field("health_warning")
     private String healthWarning;
+
+    private String language;
 }

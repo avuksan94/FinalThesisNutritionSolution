@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.util.List;
 
@@ -17,6 +18,8 @@ public class RecipeResponseDTO {
     private String id;
     private String title;
     private String description;
+    private String diet;
+    private String createdWith;
     private List<IngredientEntryDTO> ingredients;
     private List<String> preparationSteps;
     private NutritionSummaryDTO nutritionSummary;

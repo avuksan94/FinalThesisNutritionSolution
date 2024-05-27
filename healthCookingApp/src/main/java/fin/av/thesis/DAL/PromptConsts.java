@@ -9,7 +9,8 @@ public  class PromptConsts {
             "description, a list of the provided ingredients with exact quantities in decimal format (not fractions), unit(for measurement), detailed preparation_steps that only involve these ingredients, a nutrition_summary including " +
             "calories, protein, carbs, fats, fiber, and sugar amounts, cooking_time, servings, any special_notes and health_warning that tells the user that if item is dangerous for their health based on allergies or health condition." +
             " The format must adhere to JSON standards without any comments or non-standard elements, and avoid introducing " +
-            "any ingredients not explicitly listed as suitable for the specified diet.";
+            "any ingredients not explicitly listed as suitable for the specified diet." +
+            "(if no health warning or notes exist set their values to null)!";
 
     // this is with the ingredients that the user has at home
     public static final String MEAL_PLAN_PROMPT_WITH_WARNING_01 = "Please generate a detailed meal_plan for one day in JSON format, STRICTLY suitable for a %s diet, considering the specific health condition: %s. " +
@@ -18,7 +19,10 @@ public  class PromptConsts {
             "description, a list of the provided ingredients with exact quantities in decimal format (not fractions), unit(for measurement), detailed preparation_steps that only involve these ingredients, a nutrition_summary including " +
             "calories, protein, carbs, fats, fiber, and sugar amounts, cooking_time, servings, and health_warning that tells the user that if item is dangerous for their health based on allergies or health condition." +
             " The format must adhere to JSON standards without any comments or non-standard elements, and avoid introducing " +
-            "any ingredients not explicitly listed as suitable for the specified diet. Format the output to have 'meals', with the mentioned details.Do not leave out any of these JSON properties!!";
+            "any ingredients not explicitly listed as suitable for the specified diet. " +
+            "Format the output to have 'meals', with the mentioned details.Do not leave out any of these JSON properties,and also include any health warnings and notes " +
+            "(if no health warning or notes exist set their values to null)!!" +
+            "Avoid introducing any ingredients not explicitly listed as suitable for the specified diet.";
 
     //this will generate meal plans based on diet and health condition(can only be used without ingredients)
     public static final String MEAL_PLAN_PROMPT_01 = "Please generate a detailed meal_plan for one day in JSON format, using only the ingredients provided appropriate for a %s diet. Given the " +

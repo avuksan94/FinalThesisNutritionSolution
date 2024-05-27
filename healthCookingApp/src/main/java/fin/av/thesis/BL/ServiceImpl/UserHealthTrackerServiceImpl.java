@@ -3,8 +3,10 @@ package fin.av.thesis.BL.ServiceImpl;
 import fin.av.thesis.BL.Service.UserHealthTrackerService;
 import fin.av.thesis.DAL.Document.Nutrition.HealthWarning;
 import fin.av.thesis.DAL.Document.Nutrition.UserHealthTracker;
+import fin.av.thesis.DAL.Document.UserManagement.User;
 import fin.av.thesis.DAL.Repository.HealthWarningRepository;
 import fin.av.thesis.DAL.Repository.UserHealthTrackerRepository;
+import fin.av.thesis.DAL.Repository.UserRepository;
 import fin.av.thesis.UTIL.CustomNotFoundException;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -14,10 +16,12 @@ import reactor.core.publisher.Mono;
 public class UserHealthTrackerServiceImpl implements UserHealthTrackerService {
     private final UserHealthTrackerRepository userHealthTrackerRepository;
     private final HealthWarningRepository healthWarningRepository;
+    private final UserRepository userRepository;
 
-    public UserHealthTrackerServiceImpl(UserHealthTrackerRepository userHealthTrackerRepository, HealthWarningRepository healthWarningRepository) {
+    public UserHealthTrackerServiceImpl(UserHealthTrackerRepository userHealthTrackerRepository, HealthWarningRepository healthWarningRepository, UserRepository userRepository) {
         this.userHealthTrackerRepository = userHealthTrackerRepository;
         this.healthWarningRepository = healthWarningRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -36,6 +40,30 @@ public class UserHealthTrackerServiceImpl implements UserHealthTrackerService {
         return userHealthTrackerRepository.findByUserId(userId)
                 .switchIfEmpty(Mono.error(new CustomNotFoundException("Health Tracking for that User was not found: " + userId)));
 
+    }
+
+    @Override
+    public Mono<HealthWarning> findHealthWarningByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .switchIfEmpty(Mono.error(new CustomNotFoundException("User with that username was not found: " + username)))
+                .flatMap(user -> userHealthTrackerRepository.findByUserId(user.getId()))
+                .flatMap(userHealthTracker -> healthWarningRepository.findById(userHealthTracker.getHealthWarningId()));
+    }
+
+    @Override
+    public Mono<UserHealthTracker> findHealthTrackerByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .switchIfEmpty(Mono.error(new CustomNotFoundException("User with that username was not found: " + username)))
+                .flatMap(user -> userHealthTrackerRepository.findByUserId(user.getId()));
+    }
+
+    @Override
+    public Mono<Boolean> healthTrackerExistsByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .switchIfEmpty(Mono.error(new CustomNotFoundException("User with that username was not found: " + username)))
+                .flatMap(user -> userHealthTrackerRepository.findByUserId(user.getId())
+                        .map(tracker -> true)
+                        .defaultIfEmpty(false));
     }
 
     @Override

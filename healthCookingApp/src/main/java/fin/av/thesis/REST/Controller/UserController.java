@@ -69,6 +69,14 @@ public class UserController {
                 .map(ResponseEntity::ok);
     }
 
+    @GetMapping("/usersBasic/{username}")
+    @Operation(summary = "Find user by Username", description = "Returns a specific user.")
+    public Mono<ResponseEntity<UserResponseDTO>> findUserByUsername(@PathVariable String username) {
+        return userService.findByUsername(username)
+                .map(userResponseMapper::UserToDTOUserRes)
+                .map(ResponseEntity::ok);
+    }
+
     @PostMapping("/users")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create a new user", description = "Creates a new user and returns the created user.")

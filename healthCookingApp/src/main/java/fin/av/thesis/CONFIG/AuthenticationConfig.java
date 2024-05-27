@@ -1,9 +1,8 @@
 package fin.av.thesis.CONFIG;
 
-import fin.av.thesis.JWT.JwtRequestFilter;
+import fin.av.thesis.BL.ServiceImpl.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -15,6 +14,14 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
+import org.springframework.security.web.server.authentication.ServerAuthenticationConverter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+
+
+import java.util.Arrays;
 
 /*
 The UserDetails interface is the contract you use to describe a user in Spring
@@ -35,6 +42,59 @@ Page 85 Spring Security
 @Configuration
 public class AuthenticationConfig {
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationConfig.class);
+
+    @Bean
+    SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http,
+                                                     JwtAuthenticationManager authenticationManager,
+                                                     ServerAuthenticationConverter authenticationConverter) {
+        AuthenticationWebFilter authenticationWebFilter = new AuthenticationWebFilter(authenticationManager);
+        authenticationWebFilter.setServerAuthenticationConverter(authenticationConverter);
+
+        return http
+                .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers(HttpMethod.POST, "/healthAPI/authentication/login").permitAll()
+                        .pathMatchers(HttpMethod.POST, "/healthAPI/authentication/register").permitAll()
+                        .pathMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
+                        //.anyExchange().authenticated()
+                        .anyExchange().permitAll()
+                )
+                .addFilterAt(authenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+                .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .build();
+    }
+
+    @Bean
+    public JwtAuthenticationManager jwtAuthenticationManager(JwtService jwtService) {
+        return new JwtAuthenticationManager(jwtService);
+    }
+
+    @Bean
+    public ReactiveAuthenticationManager authenticationManager(ReactiveUserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+        UserDetailsRepositoryReactiveAuthenticationManager authenticationManager = new UserDetailsRepositoryReactiveAuthenticationManager(userDetailsService);
+        authenticationManager.setPasswordEncoder(passwordEncoder);
+        return authenticationManager;
+    }
+
+    @Bean
+    public JwtService jwtService() {
+        return new JwtService();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(Arrays.asList("http://localhost:8080"));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(Arrays.asList("*"));
+        config.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+    /*
     private final JwtRequestFilter jwtRequestFilter;
 
     public AuthenticationConfig(JwtRequestFilter jwtRequestFilter) {
@@ -48,14 +108,28 @@ public class AuthenticationConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+                .cors().configurationSource(corsConfigurationSource()).and()
+                .addFilterAt(new LogFilter(), SecurityWebFiltersOrder.AUTHORIZATION)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.POST, "/healthAPI/authentication/login").permitAll()
                         .pathMatchers(HttpMethod.POST, "/healthAPI/authentication/register").permitAll()
                         .pathMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
                         .anyExchange().authenticated())
+                        //.anyExchange().permitAll())
                 .addFilterAt(jwtRequestFilter, SecurityWebFiltersOrder.AUTHENTICATION);
-
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(Arrays.asList("http://localhost:8080"));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(Arrays.asList("*"));
+        config.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     @Bean
@@ -64,4 +138,6 @@ public class AuthenticationConfig {
         authenticationManager.setPasswordEncoder(passwordEncoder);
         return authenticationManager;
     }
+
+     */
 }

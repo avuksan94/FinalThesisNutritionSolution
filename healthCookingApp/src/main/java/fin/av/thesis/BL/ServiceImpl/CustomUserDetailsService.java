@@ -35,7 +35,8 @@ public class CustomUserDetailsService implements ReactiveUserDetailsService {
                     Set<GrantedAuthority> authorities = user.getAuthorities().stream()
                             .map(authority -> new SimpleGrantedAuthority(authority.getAuthority().toString()))
                             .collect(Collectors.toSet());
-                    logger.info("AUTHORITIES: " + authorities);
+                    logger.info("CustomUserDetails: AUTHORITIES: " + authorities);
+                    logger.info("CustomUserDetails: PASSWORD" + user.getPassword());
                     return new org.springframework.security.core.userdetails.User(
                             user.getUsername(), user.getPassword(), authorities);
                 });

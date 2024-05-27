@@ -13,11 +13,19 @@ import org.springframework.data.mongodb.core.mapping.Field;
 public class IngredientEntry {
     @Field("ingredient_id")
     private String ingredientId;
+    private String name;
     private double quantity;
     private String unit;
     private String notes;
 
     public IngredientEntry(double quantity, String unit, String notes) {
+        this.quantity = quantity;
+        this.unit = unit;
+        this.notes = notes;
+    }
+
+    public IngredientEntry(String name, double quantity, String unit, String notes) {
+        this.name = name;
         this.quantity = quantity;
         this.unit = unit;
         this.notes = notes;

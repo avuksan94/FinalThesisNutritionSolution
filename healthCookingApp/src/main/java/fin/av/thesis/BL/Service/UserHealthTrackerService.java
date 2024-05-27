@@ -11,6 +11,9 @@ public interface UserHealthTrackerService {
     Flux<UserHealthTracker> findAll();
     Mono<UserHealthTracker> findById(String id);
     Mono<UserHealthTracker> findByUserId(String userId);
+    Mono<HealthWarning> findHealthWarningByUsername(String username);
+    Mono<UserHealthTracker> findHealthTrackerByUsername(String username);
+    Mono<Boolean> healthTrackerExistsByUsername(String username);
     Mono<UserHealthTracker> save(UserHealthTracker obj);
     Mono<Void> deleteById(String id);
     Mono<HealthWarning> getHealthWarningForUser(String userId);

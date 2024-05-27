@@ -18,6 +18,8 @@ public class RecipeDTO {
     private String title;
     @NotBlank(message = "Description is required!")
     private String description;
+    private String diet;
+    private String createdWith;
     @Valid
     private List<IngredientEntryDTO> ingredients;
     @Valid

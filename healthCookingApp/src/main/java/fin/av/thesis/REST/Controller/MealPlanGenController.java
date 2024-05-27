@@ -53,6 +53,18 @@ public class MealPlanGenController {
                         .toList()));
     }
 
+    @GetMapping("/mealPlansGenByUsername/{username}")
+    @ResponseBody
+    @Operation(summary = "Find all meal plans by username", description = "Returns all meal plans by username.")
+    public Mono<ResponseEntity<List<MealPlanResponseDTO>>> findAllMealPlansByUsername(@PathVariable String username) {
+        return userHealthTrackerService.findHealthTrackerByUsername(username)
+                .flatMap(userHealthTracker ->
+                        mealPlanService.findAllByHealthTrackerId(userHealthTracker.getId())
+                                .map(mealPlanResponseMapper::MealPlanToDTOMealPlanRes)
+                                .collectList()
+                                .map(ResponseEntity::ok));
+    }
+
     @GetMapping("/mealPlansGen/{mealPlanId}")
     @ResponseBody
     @Operation(summary = "Find meal plan by ID", description = "Returns a specific meal plan.")
@@ -82,7 +94,7 @@ public class MealPlanGenController {
                                     String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
                                     MealPlanResponse mealResponse = objectMapper.readValue(processedJson, MealPlanResponse.class);
 
-                                    return createMealPlan(mealResponse,healthTracker.getId())
+                                    return createMealPlan(mealResponse,healthTracker.getId(), healthTracker.getDiet())
                                             .map(savedRecipe -> ResponseEntity.ok().body(savedRecipe));
                                 } catch (JsonProcessingException e) {
                                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
@@ -92,9 +104,40 @@ public class MealPlanGenController {
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
     }
 
-    private Mono<MealPlan> createMealPlan(MealPlanResponse mealPlanResponse, String healthTrackerId) {
+    //CREATE MEAL PLAN BASED ON USERNAME
+    @PostMapping("/mealPlansGenByUsername/{username}")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Create a new meal plan", description = "Creates a new meal plan and returns the created meal plan.")
+    public Mono<ResponseEntity<?>> createMealPlanUsingUsername(@PathVariable String username, @Valid @RequestBody List<String> ingredients) {
+        return userHealthTrackerService.findHealthTrackerByUsername(username)
+                .flatMap(healthTracker -> {
+                    Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(healthTracker);
+                    Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(healthTracker);
+
+                    return Mono.zip(healthConditions, knownAllergies)
+                            .flatMap(tuple -> {
+                                RecipePrompt prompt = new RecipePrompt(healthTracker.getDiet(), tuple.getT1(), tuple.getT2(), ingredients);
+                                return openAIService.generateDailyMealPlan(prompt);
+                            })
+                            .flatMap(response -> {
+                                try {
+                                    String json = response.getChoices().getFirst().getMessage().getContent();
+                                    String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
+                                    MealPlanResponse mealResponse = objectMapper.readValue(processedJson, MealPlanResponse.class);
+
+                                    return createMealPlan(mealResponse,healthTracker.getId(), healthTracker.getDiet())
+                                            .map(savedRecipe -> ResponseEntity.ok().body(savedRecipe));
+                                } catch (JsonProcessingException e) {
+                                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
+                                }
+                            });
+                })
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+    }
+
+    private Mono<MealPlan> createMealPlan(MealPlanResponse mealPlanResponse, String healthTrackerId, String diet) {
         return Flux.fromIterable(mealPlanResponse.getMeals())
-                .flatMap(mealRecipeResponse -> saveMealPlan(mealRecipeResponse, healthTrackerId)
+                .flatMap(mealRecipeResponse -> saveMealPlan(mealRecipeResponse, healthTrackerId, diet)
                         .map(recipe -> new MealRecipe(convertMealType(mealRecipeResponse.getMeal()), recipe))
                 )
                 .collectList()
@@ -108,13 +151,15 @@ public class MealPlanGenController {
                 .flatMap(mealPlanService::save);
     }
 
-    private Mono<Recipe> saveMealPlan(MealRecipeResponse recipeResponse, String healthTrackerId) {
+    private Mono<Recipe> saveMealPlan(MealRecipeResponse recipeResponse, String healthTrackerId,String diet) {
         return convertAndSaveIngredients(recipeResponse.getIngredients())
                 .flatMap(ingredientEntries -> {
                     Recipe recipe = new Recipe();
                     recipe.setHealthTrackerId(healthTrackerId);
                     recipe.setTitle(recipeResponse.getTitle());
                     recipe.setDescription(recipeResponse.getDescription());
+                    recipe.setCreatedWith("AI");
+                    recipe.setDiet(diet);
                     recipe.setIngredients(ingredientEntries);
                     recipe.setPreparationSteps(recipeResponse.getPreparation());
                     recipe.setNutritionSummary(new NutritionSummary(
@@ -154,6 +199,7 @@ public class MealPlanGenController {
         return ingredientService.save(ingredient)
                 .map(savedIngredient -> new IngredientEntry(
                         savedIngredient.getId(),
+                        simpleIngredient.getName(),
                         simpleIngredient.getQuantity(),
                         simpleIngredient.getUnit(),
                         ""
