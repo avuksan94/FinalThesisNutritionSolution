@@ -33,18 +33,17 @@ import java.util.List;
 @RequestMapping("healthAPI")
 public class NutritionTrackerController {
     private final UserNutritionTrackerService userNutritionTrackerService;
-    private final UserNutritionTrackerRequestMapper userNutritionTrackerRequestMapper;
     private final UserNutritionTrackerResponseMapper userNutritionTrackerResponseMapper;
     private final UserService userService;
     private final NutrientsMapper nutrientsMapper;
 
-    public NutritionTrackerController(UserNutritionTrackerService userNutritionTrackerService, UserNutritionTrackerRequestMapper userNutritionTrackerRequestMapper, UserNutritionTrackerResponseMapper userNutritionTrackerResponseMapper, UserService userService, NutrientsMapper nutrientsMapper) {
+    public NutritionTrackerController(UserNutritionTrackerService userNutritionTrackerService, UserNutritionTrackerResponseMapper userNutritionTrackerResponseMapper, UserService userService, NutrientsMapper nutrientsMapper) {
         this.userNutritionTrackerService = userNutritionTrackerService;
-        this.userNutritionTrackerRequestMapper = userNutritionTrackerRequestMapper;
         this.userNutritionTrackerResponseMapper = userNutritionTrackerResponseMapper;
         this.userService = userService;
         this.nutrientsMapper = nutrientsMapper;
     }
+
 
     @GetMapping("/nutritionTrackers/all")
     @Operation(summary = "Find all nutrition trackers", description = "Returns all nutrition trackers.")
@@ -139,13 +138,4 @@ public class NutritionTrackerController {
         return userNutritionTrackerService.deleteById(nutritionTrackerId)
                 .then(Mono.just(ResponseEntity.ok("Successfully deleted nutrition tracker with ID " + nutritionTrackerId)));
     }
-
-    /*
-    @DeleteMapping("/nutritionTrackersByUsername/{username}")
-    @Operation(summary = "Delete a nutrition tracker", description = "Specify the username, to delete the nutrition tracker you want.")
-    public Mono<ResponseEntity<String>> deleteNTByUsername(@PathVariable String username) {
-        return userNutritionTrackerService.deleteByUsername(username)
-                .then(Mono.just(ResponseEntity.ok("Successfully deleted nutrition tracker with username " + username)));
-    }
-     */
 }

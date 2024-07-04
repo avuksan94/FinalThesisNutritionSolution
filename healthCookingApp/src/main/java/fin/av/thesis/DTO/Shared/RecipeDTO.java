@@ -33,4 +33,5 @@ public class RecipeDTO {
     @PositiveOrZero(message = "Servings must be zero or positive")
     private int servings;
     private String notes;
+    private String language;
 }

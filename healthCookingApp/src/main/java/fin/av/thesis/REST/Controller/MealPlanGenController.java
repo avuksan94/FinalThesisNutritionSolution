@@ -6,11 +6,14 @@ import fin.av.thesis.BL.Service.*;
 import fin.av.thesis.DAL.Document.Nutrition.*;
 import fin.av.thesis.DAL.Document.OpenAI.*;
 import fin.av.thesis.DAL.Enum.MealType;
+import fin.av.thesis.DAL.Enum.SupportedLanguage;
 import fin.av.thesis.DTO.Response.MealPlanResponseDTO;
 import fin.av.thesis.REST.Helper.HealthTrackingHelper;
 import fin.av.thesis.REST.Mapper.ResponseMapper.MealPlanResponseMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,15 +27,18 @@ import java.util.List;
 @RequestMapping("healthAPI")
 public class MealPlanGenController {
     private final OpenAIService openAIService;
+    private final UserProfileService userProfileService;
     private final MealPlanService mealPlanService;
     private final RecipeService recipeService;
     private final IngredientService ingredientService;
     private final UserHealthTrackerService userHealthTrackerService;
     private final MealPlanResponseMapper mealPlanResponseMapper;
     private final ObjectMapper objectMapper;
+    private static final Logger log = LoggerFactory.getLogger(MealPlanGenController.class);
 
-    public MealPlanGenController(OpenAIService openAIService, MealPlanService mealPlanService, RecipeService recipeService, IngredientService ingredientService, UserHealthTrackerService userHealthTrackerService, MealPlanResponseMapper mealPlanResponseMapper, ObjectMapper objectMapper) {
+    public MealPlanGenController(OpenAIService openAIService, UserProfileService userProfileService, MealPlanService mealPlanService, RecipeService recipeService, IngredientService ingredientService, UserHealthTrackerService userHealthTrackerService, MealPlanResponseMapper mealPlanResponseMapper, ObjectMapper objectMapper) {
         this.openAIService = openAIService;
+        this.userProfileService = userProfileService;
         this.mealPlanService = mealPlanService;
         this.recipeService = recipeService;
         this.ingredientService = ingredientService;
@@ -74,70 +80,48 @@ public class MealPlanGenController {
                 .map(ResponseEntity::ok);
     }
 
-    @PostMapping("/mealPlansGen/{healthTrackerID}")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a new meal plan", description = "Creates a new meal plan and returns the created meal plan.")
-    public Mono<ResponseEntity<?>> createMealPlanUsingHT(@PathVariable String healthTrackerID, @Valid @RequestBody List<String> ingredients) {
-        return userHealthTrackerService.findById(healthTrackerID)
-                .flatMap(healthTracker -> {
-                    Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(healthTracker);
-                    Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(healthTracker);
-
-                    return Mono.zip(healthConditions, knownAllergies)
-                            .flatMap(tuple -> {
-                                RecipePrompt prompt = new RecipePrompt(healthTracker.getDiet(), tuple.getT1(), tuple.getT2(), ingredients);
-                                return openAIService.generateDailyMealPlan(prompt);
-                            })
-                            .flatMap(response -> {
-                                try {
-                                    String json = response.getChoices().getFirst().getMessage().getContent();
-                                    String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
-                                    MealPlanResponse mealResponse = objectMapper.readValue(processedJson, MealPlanResponse.class);
-
-                                    return createMealPlan(mealResponse,healthTracker.getId(), healthTracker.getDiet())
-                                            .map(savedRecipe -> ResponseEntity.ok().body(savedRecipe));
-                                } catch (JsonProcessingException e) {
-                                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
-                                }
-                            });
-                })
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
-    }
-
     //CREATE MEAL PLAN BASED ON USERNAME
     @PostMapping("/mealPlansGenByUsername/{username}")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a new meal plan", description = "Creates a new meal plan and returns the created meal plan.")
+    @Operation(summary = "Create a new meal plan", description = "Creates a new meal plan based on the user's health conditions, known allergies, diet preferences, and ingredients, while considering the user's language preference.")
     public Mono<ResponseEntity<?>> createMealPlanUsingUsername(@PathVariable String username, @Valid @RequestBody List<String> ingredients) {
         return userHealthTrackerService.findHealthTrackerByUsername(username)
                 .flatMap(healthTracker -> {
                     Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(healthTracker);
                     Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(healthTracker);
+                    Mono<SupportedLanguage> languageMono = getUserLanguage(username);
 
-                    return Mono.zip(healthConditions, knownAllergies)
+                    return Mono.zip(healthConditions, knownAllergies, languageMono)
                             .flatMap(tuple -> {
-                                RecipePrompt prompt = new RecipePrompt(healthTracker.getDiet(), tuple.getT1(), tuple.getT2(), ingredients);
-                                return openAIService.generateDailyMealPlan(prompt);
-                            })
-                            .flatMap(response -> {
-                                try {
-                                    String json = response.getChoices().getFirst().getMessage().getContent();
-                                    String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
-                                    MealPlanResponse mealResponse = objectMapper.readValue(processedJson, MealPlanResponse.class);
+                                RecipePrompt prompt = new RecipePrompt(
+                                        healthTracker.getDiet(),
+                                        tuple.getT1(),
+                                        tuple.getT2(),
+                                        ingredients
+                                );
+                                SupportedLanguage lang = tuple.getT3();
+                                return openAIService.generateDailyMealPlan(prompt, lang)
+                                        .flatMap(response -> {
+                                            try {
+                                                String json = response.getChoices().getFirst().getMessage().getContent();
+                                                String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
+                                                log.info(processedJson);
+                                                MealPlanResponse mealResponse = objectMapper.readValue(processedJson, MealPlanResponse.class);
 
-                                    return createMealPlan(mealResponse,healthTracker.getId(), healthTracker.getDiet())
-                                            .map(savedRecipe -> ResponseEntity.ok().body(savedRecipe));
-                                } catch (JsonProcessingException e) {
-                                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
-                                }
+                                                return createMealPlan(mealResponse, healthTracker.getId(), healthTracker.getDiet(), lang)
+                                                        .map(savedRecipe -> ResponseEntity.ok().body(savedRecipe));
+                                            } catch (JsonProcessingException e) {
+                                                return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
+                                            }
+                                        });
                             });
                 })
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
     }
 
-    private Mono<MealPlan> createMealPlan(MealPlanResponse mealPlanResponse, String healthTrackerId, String diet) {
+    private Mono<MealPlan> createMealPlan(MealPlanResponse mealPlanResponse, String healthTrackerId, String diet, SupportedLanguage lang) {
         return Flux.fromIterable(mealPlanResponse.getMeals())
-                .flatMap(mealRecipeResponse -> saveMealPlan(mealRecipeResponse, healthTrackerId, diet)
+                .flatMap(mealRecipeResponse -> saveMealPlan(mealRecipeResponse, healthTrackerId, diet, lang)
                         .map(recipe -> new MealRecipe(convertMealType(mealRecipeResponse.getMeal()), recipe))
                 )
                 .collectList()
@@ -151,7 +135,7 @@ public class MealPlanGenController {
                 .flatMap(mealPlanService::save);
     }
 
-    private Mono<Recipe> saveMealPlan(MealRecipeResponse recipeResponse, String healthTrackerId,String diet) {
+    private Mono<Recipe> saveMealPlan(MealRecipeResponse recipeResponse, String healthTrackerId,String diet, SupportedLanguage lang) {
         return convertAndSaveIngredients(recipeResponse.getIngredients())
                 .flatMap(ingredientEntries -> {
                     Recipe recipe = new Recipe();
@@ -174,6 +158,7 @@ public class MealPlanGenController {
                     recipe.setServings(recipeResponse.getServings());
                     recipe.setNotes(recipeResponse.getNotes());
                     recipe.setHealthWarning(recipeResponse.getHealthWarning());
+                    recipe.setLanguage(lang.toString());
 
                     return recipeService.save(recipe);
                 });
@@ -243,5 +228,11 @@ public class MealPlanGenController {
                 .thenReturn(ResponseEntity.ok("Successfully deleted all meal plans and associated recipes and ingredients for Health Tracker ID: " + userHealthTrackerId))
                 .switchIfEmpty(Mono.just(ResponseEntity.ok("No meal plans found with Health Tracker ID: " + userHealthTrackerId)))
                 .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete meal plans for Health Tracker ID " + userHealthTrackerId + ": " + e.getMessage())));
+    }
+
+    private Mono<SupportedLanguage> getUserLanguage(String username) {
+        return userProfileService.findUserProfileByUsername(username)
+                .map(UserProfile::getLanguage)
+                .switchIfEmpty(Mono.just(SupportedLanguage.EN));
     }
 }

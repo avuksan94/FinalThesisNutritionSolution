@@ -27,4 +27,5 @@ public class RecipeResponseDTO {
     private int servings;
     private String notes;
     private String healthWarning;
+    private String language;
 }

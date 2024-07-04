@@ -1,6 +1,7 @@
 package fin.av.thesis.DAL.Enum;
 
 public enum HealthCondition {
+    NONE,
     //Arthritis
     OSTEOARTHRITIS,
     FIBROMYALGIA,

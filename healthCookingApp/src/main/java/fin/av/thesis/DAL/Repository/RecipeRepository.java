@@ -11,6 +11,7 @@ import reactor.core.publisher.Mono;
 @Repository
 public interface RecipeRepository extends ReactiveMongoRepository<Recipe, String> {
     Flux<Recipe> findAllByHealthTrackerId(String healthTrackerId);
+    Flux<Recipe> findAllByLanguage(String language);
     Mono<Void> deleteByHealthTrackerId(String healthTrackerId);
     Mono<Boolean> existsByHealthTrackerId(String healthTrackerId);
 

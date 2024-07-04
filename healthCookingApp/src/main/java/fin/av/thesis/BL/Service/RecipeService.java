@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 
 public interface RecipeService {
     Flux<Recipe> findAll();
+    Flux<Recipe> findAllByLanguage(String language);
     Mono<Recipe> findById(String id);
     Flux<Recipe> findAllByHealthTrackerId(String healthTrackerId);
     Mono<Recipe> save(Recipe obj);

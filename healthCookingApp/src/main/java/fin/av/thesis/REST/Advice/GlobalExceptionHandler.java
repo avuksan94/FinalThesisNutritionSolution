@@ -1,5 +1,6 @@
 package fin.av.thesis.REST.Advice;
 
+import com.mongodb.DuplicateKeyException;
 import fin.av.thesis.UTIL.CustomErrorResponse;
 import fin.av.thesis.UTIL.CustomForbiddenException;
 import fin.av.thesis.UTIL.CustomNotFoundException;
@@ -9,8 +10,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -43,6 +42,12 @@ public class GlobalExceptionHandler {
     public Mono<ResponseEntity<CustomErrorResponse>> handleGeneralException(Exception ex) {
         HttpStatus status = determineStatus(ex);
         return Mono.just(ResponseEntity.status(status).body(createErrorResponse(status, "An unexpected error occurred")));
+    }
+
+    @ExceptionHandler(DuplicateKeyException.class)
+    public Mono<ResponseEntity<CustomErrorResponse>> handleDuplicateKeyException(DuplicateKeyException ex) {
+        CustomErrorResponse customErrorResponse = createErrorResponse(HttpStatus.BAD_REQUEST, "A user with the same username or email already exists.");
+        return Mono.just(new ResponseEntity<>(customErrorResponse, HttpStatus.BAD_REQUEST));
     }
 
     private HttpStatus determineStatus(Exception ex) {

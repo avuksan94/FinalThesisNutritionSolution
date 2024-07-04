@@ -2,15 +2,14 @@ package fin.av.thesis.REST.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fin.av.thesis.BL.Service.HealthWarningService;
-import fin.av.thesis.BL.Service.OpenAIService;
-import fin.av.thesis.BL.Service.UserHealthTrackerService;
-import fin.av.thesis.BL.Service.UserService;
+import fin.av.thesis.BL.Service.*;
 import fin.av.thesis.DAL.Document.Nutrition.HealthWarning;
 import fin.av.thesis.DAL.Document.Nutrition.UserHealthTracker;
+import fin.av.thesis.DAL.Document.Nutrition.UserProfile;
 import fin.av.thesis.DAL.Document.OpenAI.DietPrompt;
 import fin.av.thesis.DAL.Document.OpenAI.HealthWarningResponse;
 import fin.av.thesis.DAL.Document.UserManagement.User;
+import fin.av.thesis.DAL.Enum.SupportedLanguage;
 import fin.av.thesis.DTO.Request.UserHealthTrackerRequestDTO;
 import fin.av.thesis.DTO.Response.UserHealthTrackerResponseDTO;
 import fin.av.thesis.REST.Mapper.RequestMapper.UserHealthTrackerRequestMapper;
@@ -32,15 +31,17 @@ import java.util.Map;
 public class HealthTrackerController {
     private final OpenAIService openAIService;
     private final UserService userService;
+    private final UserProfileService userProfileService;
     private final HealthWarningService healthWarningService;
     private final UserHealthTrackerService userHealthTrackerService;
     private final UserHealthTrackerRequestMapper userHealthTrackerRequestMapper;
     private final UserHealthTrackerResponseMapper userHealthTrackerResponseMapper;
     private final ObjectMapper objectMapper;
 
-    public HealthTrackerController(OpenAIService openAIService, UserService userService, HealthWarningService healthWarningService, UserHealthTrackerService userHealthTrackerService, UserHealthTrackerRequestMapper userHealthTrackerRequestMapper, UserHealthTrackerResponseMapper userHealthTrackerResponseMapper, ObjectMapper objectMapper) {
+    public HealthTrackerController(OpenAIService openAIService, UserService userService, UserProfileService userProfileService, HealthWarningService healthWarningService, UserHealthTrackerService userHealthTrackerService, UserHealthTrackerRequestMapper userHealthTrackerRequestMapper, UserHealthTrackerResponseMapper userHealthTrackerResponseMapper, ObjectMapper objectMapper) {
         this.openAIService = openAIService;
         this.userService = userService;
+        this.userProfileService = userProfileService;
         this.healthWarningService = healthWarningService;
         this.userHealthTrackerService = userHealthTrackerService;
         this.userHealthTrackerRequestMapper = userHealthTrackerRequestMapper;
@@ -90,58 +91,23 @@ public class HealthTrackerController {
         return userHealthTrackerService.findHealthWarningByUsername(username);
     }
 
-    //TESTING THE CONCEPT
-    @PostMapping("/healthTrackers")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a new health tracker", description = "Creates a new health tracker.")
-    public Mono<ResponseEntity<?>> createUserHT(@Valid @RequestBody UserHealthTrackerRequestDTO userHt) {
-        Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(userHt);
-        Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(userHt);
-
-        return Mono.zip(healthConditions, knownAllergies)
-                .flatMap(tuple -> {
-                    DietPrompt prompt = new DietPrompt(userHt.getDiet(), tuple.getT1(), tuple.getT2());
-                    return openAIService.checkDietCompatibility(prompt);
-                })
-                .flatMap(response -> {
-                    try {
-                        String json = response.getChoices().getFirst().getMessage().getContent();
-                        String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
-                        HealthWarningResponse healthWarningResponse = objectMapper.readValue(processedJson, HealthWarningResponse.class);
-
-                        HealthWarning newWarning = HealthTrackingHelper.getHealthWarning(healthWarningResponse);
-
-                        return healthWarningService.save(newWarning)
-                                .flatMap(savedWarning -> {
-
-                                    UserHealthTracker newTracker = userHealthTrackerRequestMapper.DTOUserHTReqToUserHT(userHt);
-                                    newTracker.setHealthWarningId(savedWarning.getId());
-
-                                    return userHealthTrackerService.save(newTracker)
-                                            .map(savedTracker -> ResponseEntity.ok(savedTracker));
-                                });
-                    } catch (JsonProcessingException e) {
-                        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
-                    }
-                });
-    }
-
     //BY USERNAME:
     @PostMapping("/healthTrackersByUsername/{username}")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a new health tracker", description = "Creates a new health tracker.")
+    @Operation(summary = "Create a new health tracker", description = "Creates a new health tracker for a specified user.")
     public Mono<ResponseEntity<?>> createUserHTByUsername(@Valid @RequestBody UserHealthTrackerRequestDTO userHt, @PathVariable String username) {
         return userService.findByUsername(username)
                 .flatMap(user -> {
                     userHt.setUserId(user.getId());
                     Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(userHt);
                     Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(userHt);
+                    Mono<SupportedLanguage> lang = getUserLanguage(username);
 
-                    return Mono.zip(healthConditions, knownAllergies, (conditions, allergies) -> {
-                                DietPrompt prompt = new DietPrompt(userHt.getDiet(), conditions, allergies);
-                                return prompt;
+                    return Mono.zip(healthConditions, knownAllergies, lang)
+                            .flatMap(tuple -> {
+                                DietPrompt prompt = new DietPrompt(userHt.getDiet(), tuple.getT1(), tuple.getT2());
+                                return openAIService.checkDietCompatibility(prompt, tuple.getT3());
                             })
-                            .flatMap(prompt -> openAIService.checkDietCompatibility(prompt))
                             .flatMap(response -> {
                                 try {
                                     String json = response.getChoices().getFirst().getMessage().getContent();
@@ -155,64 +121,27 @@ public class HealthTrackerController {
                                                 newTracker.setHealthWarningId(savedWarning.getId());
 
                                                 return userHealthTrackerService.save(newTracker)
-                                                        .map(savedTracker -> ResponseEntity.ok(savedTracker));
+                                                        .map(savedTracker -> ResponseEntity.ok().body(savedTracker));
                                             });
                                 } catch (JsonProcessingException e) {
                                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
                                 }
                             });
-                });
-    }
-
-
-    @PutMapping("/healthTrackers/{healthTrackerId}")
-    @Operation(summary = "Updates an health tracker based on the health tracker ID", description = "Updates an health tracker by the health tracker ID.")
-    public Mono<ResponseEntity<?>> updateUser(@PathVariable String healthTrackerId, @Valid @RequestBody UserHealthTrackerRequestDTO userHt) {
-        Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(userHt);
-        Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(userHt);
-
-        return Mono.zip(healthConditions, knownAllergies)
-                .flatMap(tuple -> {
-                    DietPrompt prompt = new DietPrompt(userHt.getDiet(), tuple.getT1(), tuple.getT2());
-                    return openAIService.checkDietCompatibility(prompt);
                 })
-                .flatMap(response -> {
-                    try {
-                        String json = response.getChoices().getFirst().getMessage().getContent();
-                        String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
-                        HealthWarningResponse healthWarningResponse = objectMapper.readValue(processedJson, HealthWarningResponse.class);
-
-                        Mono<UserHealthTracker> existingTrackerMono = userHealthTrackerService.findById(healthTrackerId);
-
-                        return existingTrackerMono.flatMap(existingTracker -> {
-                            Mono<HealthWarning> existingHealthWarningMono = healthWarningService.findById(existingTracker.getHealthWarningId());
-
-                            return existingHealthWarningMono.flatMap(existingHealthWarning -> {
-                                HealthTrackingHelper.updateHealthWarningFromResponse(existingHealthWarning, healthWarningResponse);
-                                return healthWarningService.save(existingHealthWarning)
-                                        .flatMap(updatedHealthWarning -> {
-                                            HealthTrackingHelper.updateUHTDetails(existingTracker, userHealthTrackerRequestMapper.DTOUserHTReqToUserHT(userHt));
-                                            return userHealthTrackerService.save(existingTracker);
-                                        })
-                                        .thenReturn(ResponseEntity.ok(existingTracker));
-                            });
-                        });
-                    } catch (JsonProcessingException e) {
-                        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
-                    }
-                });
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
     }
 
     @PutMapping("/healthTrackersByUsername/{username}")
-    @Operation(summary = "Updates an health tracker based on a username", description = "Updates an health tracker by the username.")
+    @Operation(summary = "Updates a health tracker based on a username", description = "Updates a health tracker by the username.")
     public Mono<ResponseEntity<?>> updateUserHealthTrackerByUsername(@PathVariable String username, @Valid @RequestBody UserHealthTrackerRequestDTO userHt) {
         Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(userHt);
         Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(userHt);
+        Mono<SupportedLanguage> lang = getUserLanguage(username);
 
-        return Mono.zip(healthConditions, knownAllergies)
+        return Mono.zip(healthConditions, knownAllergies, lang)
                 .flatMap(tuple -> {
                     DietPrompt prompt = new DietPrompt(userHt.getDiet(), tuple.getT1(), tuple.getT2());
-                    return openAIService.checkDietCompatibility(prompt);
+                    return openAIService.checkDietCompatibility(prompt, tuple.getT3());
                 })
                 .flatMap(response -> {
                     try {
@@ -220,25 +149,29 @@ public class HealthTrackerController {
                         String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
                         HealthWarningResponse healthWarningResponse = objectMapper.readValue(processedJson, HealthWarningResponse.class);
 
-                        Mono<UserHealthTracker> existingTrackerMono = userHealthTrackerService.findHealthTrackerByUsername(username);
-
-                        return existingTrackerMono.flatMap(existingTracker -> {
-                            Mono<HealthWarning> existingHealthWarningMono = healthWarningService.findById(existingTracker.getHealthWarningId());
-
-                            return existingHealthWarningMono.flatMap(existingHealthWarning -> {
-                                HealthTrackingHelper.updateHealthWarningFromResponse(existingHealthWarning, healthWarningResponse);
-                                return healthWarningService.save(existingHealthWarning)
-                                        .flatMap(updatedHealthWarning -> {
-                                            HealthTrackingHelper.updateUHTDetails(existingTracker, userHealthTrackerRequestMapper.DTOUserHTReqToUserHT(userHt));
-                                            return userHealthTrackerService.save(existingTracker);
-                                        })
-                                        .thenReturn(ResponseEntity.ok(existingTracker));
-                            });
-                        });
+                        return userHealthTrackerService.findHealthTrackerByUsername(username)
+                                .flatMap(existingTracker -> {
+                                    if (existingTracker.getHealthWarningId() != null) {
+                                        return healthWarningService.findById(existingTracker.getHealthWarningId())
+                                                .flatMap(existingHealthWarning -> {
+                                                    HealthTrackingHelper.updateHealthWarningFromResponse(existingHealthWarning, healthWarningResponse);
+                                                    return healthWarningService.save(existingHealthWarning);
+                                                })
+                                                .flatMap(updatedHealthWarning -> {
+                                                    HealthTrackingHelper.updateUHTDetails(existingTracker, userHealthTrackerRequestMapper.DTOUserHTReqToUserHT(userHt));
+                                                    existingTracker.setHealthWarningId(updatedHealthWarning.getId());
+                                                    return userHealthTrackerService.save(existingTracker);
+                                                })
+                                                .map(savedTracker -> ResponseEntity.ok().body(savedTracker));
+                                    } else {
+                                        return Mono.just(ResponseEntity.notFound().build());
+                                    }
+                                });
                     } catch (JsonProcessingException e) {
                         return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
                     }
-                });
+                })
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
     }
 
     @ResponseBody
@@ -253,5 +186,11 @@ public class HealthTrackerController {
                 )
                 .thenReturn(ResponseEntity.ok("Successfully deleted health tracker with ID " + healthTrackerId))
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+    }
+
+    private Mono<SupportedLanguage> getUserLanguage(String username) {
+        return userProfileService.findUserProfileByUsername(username)
+                .map(UserProfile::getLanguage)
+                .switchIfEmpty(Mono.just(SupportedLanguage.EN));
     }
 }

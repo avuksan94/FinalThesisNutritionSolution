@@ -1,6 +1,7 @@
 package fin.av.thesis.DAL.Enum;
 
 public enum Allergy {
+    NONE,
     APPLE,
     BANANA,
     BEEF,

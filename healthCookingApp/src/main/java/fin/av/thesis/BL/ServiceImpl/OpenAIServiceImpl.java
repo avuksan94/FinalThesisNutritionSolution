@@ -5,6 +5,7 @@ import fin.av.thesis.BL.Service.OpenAIService;
 import fin.av.thesis.DAL.Document.OpenAI.ChatCompletionResponse;
 import fin.av.thesis.DAL.Document.OpenAI.DietPrompt;
 import fin.av.thesis.DAL.Document.OpenAI.RecipePrompt;
+import fin.av.thesis.DAL.Enum.SupportedLanguage;
 import fin.av.thesis.DAL.PromptConsts;
 import fin.av.thesis.REST.Controller.RecipeGenController;
 import org.slf4j.Logger;
@@ -34,9 +35,9 @@ public class OpenAIServiceImpl implements OpenAIService {
     private static final Logger log = LoggerFactory.getLogger(OpenAIServiceImpl.class);
 
     @Override
-    public Mono<ChatCompletionResponse> generateRecipes(RecipePrompt recipePrompt) {
+    public Mono<ChatCompletionResponse> generateRecipes(RecipePrompt recipePrompt, SupportedLanguage lang) {
         log.info("GENERATING RECIPE");
-        return getChatCompletionResponse(buildRecipePrompt(recipePrompt));
+        return getChatCompletionResponse(buildRecipePrompt(recipePrompt, lang));
     }
 
     private Mono<ChatCompletionResponse> getChatCompletionResponse(String prompt) {
@@ -51,22 +52,33 @@ public class OpenAIServiceImpl implements OpenAIService {
     }
 
     @Override
-    public Mono<ChatCompletionResponse> generateDailyMealPlan(RecipePrompt recipePrompt) {
-        return getChatCompletionResponse(buildMealPlanPrompt(recipePrompt));
+    public Mono<ChatCompletionResponse> generateDailyMealPlan(RecipePrompt recipePrompt, SupportedLanguage lang) {
+        return getChatCompletionResponse(buildMealPlanPrompt(recipePrompt,lang));
     }
 
     @Override
-    public Mono<ChatCompletionResponse> checkDietCompatibility(DietPrompt dietPrompt) {
-        return getChatCompletionResponse(buildDietCompatibilityPrompt(dietPrompt));
+    public Mono<ChatCompletionResponse> checkDietCompatibility(DietPrompt dietPrompt,SupportedLanguage lang) {
+        return getChatCompletionResponse(buildDietCompatibilityPrompt(dietPrompt, lang));
     }
 
-    private String buildRecipePrompt(RecipePrompt recipePrompt) {
+    private String buildRecipePrompt(RecipePrompt recipePrompt, SupportedLanguage lang) {
         String ingredientsFormatted = recipePrompt.getIngredients().stream()
                 .map(ingredient -> String.format("{'name': '%s'}", ingredient))
                 .collect(Collectors.joining(", "));
 
+        String promptTemplate;
+        switch (lang) {
+            case SupportedLanguage.HR:
+                promptTemplate = PromptConsts.HEALTHY_RECIPE_PROMPT_WITH_WARNING_01_HR;
+                break;
+            case SupportedLanguage.EN:
+            default:
+                promptTemplate = PromptConsts.HEALTHY_RECIPE_PROMPT_WITH_WARNING_01;
+                break;
+        }
+
         return String.format(
-                PromptConsts.HEALTHY_RECIPE_PROMPT_WITH_WARNING_01,
+                promptTemplate,
                 recipePrompt.getDiet(),
                 recipePrompt.getHealthConditions().toString(),
                 ingredientsFormatted,
@@ -74,13 +86,24 @@ public class OpenAIServiceImpl implements OpenAIService {
         );
     }
 
-    private String buildMealPlanPrompt(RecipePrompt recipePrompt) {
+    private String buildMealPlanPrompt(RecipePrompt recipePrompt, SupportedLanguage lang) {
         String ingredientsFormatted = recipePrompt.getIngredients().stream()
                 .map(ingredient -> String.format("{'name': '%s'}", ingredient))
                 .collect(Collectors.joining(", "));
 
+        String promptTemplate;
+        switch (lang) {
+            case SupportedLanguage.HR:
+                promptTemplate = PromptConsts.MEAL_PLAN_PROMPT_WITH_WARNING_01_HR;
+                break;
+            case SupportedLanguage.EN:
+            default:
+                promptTemplate = PromptConsts.MEAL_PLAN_PROMPT_WITH_WARNING_01;
+                break;
+        }
+
         return String.format(
-                PromptConsts.MEAL_PLAN_PROMPT_WITH_WARNING_01,
+                promptTemplate,
                 recipePrompt.getDiet(),
                 recipePrompt.getHealthConditions().toString(),
                 ingredientsFormatted,
@@ -88,15 +111,27 @@ public class OpenAIServiceImpl implements OpenAIService {
         );
     }
 
-    private String buildDietCompatibilityPrompt(DietPrompt dietPrompt) {
+    private String buildDietCompatibilityPrompt(DietPrompt dietPrompt, SupportedLanguage lang) {
         String healthConditionsFormatted = dietPrompt.getHealthConditions() != null ?
                 String.join(", ", dietPrompt.getHealthConditions()) :
                 "no specified health conditions";
         String allergiesFormatted = dietPrompt.getAllergies() != null ?
                 String.join(", ", dietPrompt.getAllergies()) :
                 "no known allergies";
+
+        String promptTemplate;
+        switch (lang) {
+            case SupportedLanguage.HR:
+                promptTemplate = PromptConsts.CHECK_DIET_COMPATIBILITY_SPOONACULAR_HR;
+                break;
+            case SupportedLanguage.EN:
+            default:
+                promptTemplate = PromptConsts.CHECK_DIET_COMPATIBILITY_SPOONACULAR;
+                break;
+        }
+
         return String.format(
-                PromptConsts.CHECK_DIET_COMPATIBILITY_SPOONACULAR,
+                promptTemplate,
                 dietPrompt.getDiet(),
                 healthConditionsFormatted,
                 allergiesFormatted

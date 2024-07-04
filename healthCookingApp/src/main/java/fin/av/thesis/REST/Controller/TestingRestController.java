@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fin.av.thesis.BL.Service.OpenAIService;
 import fin.av.thesis.DAL.Document.OpenAI.*;
+import fin.av.thesis.DAL.Enum.SupportedLanguage;
 import fin.av.thesis.UTIL.JsonUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +27,8 @@ public class TestingRestController {
     }
 
     @PostMapping("/generate-recipe")
-    public Mono<ResponseEntity<?>> generateRecipe(@RequestBody RecipePrompt prompt) {
-        return openAIService.generateRecipes(prompt)
+    public Mono<ResponseEntity<?>> generateRecipe(@RequestBody RecipePrompt prompt, @PathVariable SupportedLanguage lang) {
+        return openAIService.generateRecipes(prompt,lang)
                 .map(response -> {
                     try {
                         String json = response.getChoices().getFirst().getMessage().getContent();
@@ -42,8 +43,8 @@ public class TestingRestController {
     }
 
     @PostMapping("/generate-mealPlan")
-    public Mono<ResponseEntity<?>> generateMealPlan(@RequestBody RecipePrompt prompt) {
-        return openAIService.generateDailyMealPlan(prompt)
+    public Mono<ResponseEntity<?>> generateMealPlan(@RequestBody RecipePrompt prompt, @PathVariable SupportedLanguage lang) {
+        return openAIService.generateDailyMealPlan(prompt,lang)
                 .map(response -> {
                     try {
                         String json = response.getChoices().getFirst().getMessage().getContent();
@@ -58,8 +59,8 @@ public class TestingRestController {
     }
 
     @PostMapping("/generate-dietCheck")
-    public Mono<ResponseEntity<?>> generateDietCheck(@RequestBody DietPrompt prompt) {
-        return openAIService.checkDietCompatibility(prompt)
+    public Mono<ResponseEntity<?>> generateDietCheck(@RequestBody DietPrompt prompt, SupportedLanguage lang) {
+        return openAIService.checkDietCompatibility(prompt, lang)
                 .map(response -> {
                     try {
                         String json = response.getChoices().getFirst().getMessage().getContent();

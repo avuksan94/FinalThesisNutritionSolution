@@ -27,6 +27,11 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     @Override
+    public Flux<Recipe> findAllByLanguage(String language) {
+        return recipeRepository.findAllByLanguage(language);
+    }
+
+    @Override
     public Mono<Recipe> findById(String id) {
         return recipeRepository.findById(id)
                 .switchIfEmpty(Mono.error(new CustomNotFoundException("Recipe with that ID was not found: " + id)));

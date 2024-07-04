@@ -7,7 +7,6 @@ public class UserHelper {
         existingUser.setFirstName(updatedUser.getFirstName());
         existingUser.setLastName(updatedUser.getLastName());
         existingUser.setUsername(updatedUser.getUsername());
-        //existingUser.setPassword(updatedUser.getPassword());
         existingUser.setEnabled(updatedUser.isEnabled());
         existingUser.setEmail(updatedUser.getEmail());
         existingUser.setPhoneNumber(updatedUser.getPhoneNumber());

@@ -55,8 +55,7 @@ public class AuthenticationConfig {
                         .pathMatchers(HttpMethod.POST, "/healthAPI/authentication/login").permitAll()
                         .pathMatchers(HttpMethod.POST, "/healthAPI/authentication/register").permitAll()
                         .pathMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
-                        //.anyExchange().authenticated()
-                        .anyExchange().permitAll()
+                        .anyExchange().authenticated()
                 )
                 .addFilterAt(authenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
@@ -93,51 +92,4 @@ public class AuthenticationConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
-    /*
-    private final JwtRequestFilter jwtRequestFilter;
-
-    public AuthenticationConfig(JwtRequestFilter jwtRequestFilter) {
-        this.jwtRequestFilter = jwtRequestFilter;
-    }
-
-    @Bean
-    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
-        logger.info("Configuring Reactive Security Filter Chain...");
-        http
-                .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
-                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-                .cors().configurationSource(corsConfigurationSource()).and()
-                .addFilterAt(new LogFilter(), SecurityWebFiltersOrder.AUTHORIZATION)
-                .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers(HttpMethod.POST, "/healthAPI/authentication/login").permitAll()
-                        .pathMatchers(HttpMethod.POST, "/healthAPI/authentication/register").permitAll()
-                        .pathMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
-                        .anyExchange().authenticated())
-                        //.anyExchange().permitAll())
-                .addFilterAt(jwtRequestFilter, SecurityWebFiltersOrder.AUTHENTICATION);
-        return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.asList("http://localhost:8080"));
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("*"));
-        config.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
-
-    @Bean
-    public ReactiveAuthenticationManager authenticationManager(ReactiveUserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
-        UserDetailsRepositoryReactiveAuthenticationManager authenticationManager = new UserDetailsRepositoryReactiveAuthenticationManager(userDetailsService);
-        authenticationManager.setPasswordEncoder(passwordEncoder);
-        return authenticationManager;
-    }
-
-     */
 }

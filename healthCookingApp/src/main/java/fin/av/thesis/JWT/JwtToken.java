@@ -1,6 +1,5 @@
 package fin.av.thesis.JWT;
 
-import fin.av.thesis.CONFIG.AuthenticationConfig;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

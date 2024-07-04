@@ -1,5 +1,6 @@
 package fin.av.thesis.BL.ServiceImpl;
 
+import com.mongodb.DuplicateKeyException;
 import fin.av.thesis.BL.Service.AuthorityService;
 import fin.av.thesis.BL.Service.UserService;
 import fin.av.thesis.DAL.Document.UserManagement.Authority;
@@ -8,9 +9,11 @@ import fin.av.thesis.DAL.Enum.Role;
 import fin.av.thesis.DAL.Repository.AuthorityRepository;
 import fin.av.thesis.DAL.Repository.UserRepository;
 import fin.av.thesis.UTIL.CustomNotFoundException;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -58,7 +61,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Mono<User> save(User obj) {
-        return userRepository.save(obj);
+        return userRepository.save(obj)
+                .onErrorResume(e -> {
+                    if (e instanceof DuplicateKeyException) {
+                        return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username or email already exists."));
+                    }
+                    return Mono.error(e);
+                });
     }
 
     @Override

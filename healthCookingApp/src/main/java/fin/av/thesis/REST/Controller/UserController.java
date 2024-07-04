@@ -118,11 +118,16 @@ public class UserController {
     }
 
     @ResponseBody
-    @Operation(summary = "Delete a user", description = "Specify the user ID, to delete the user you want.")
-    @DeleteMapping("/users/{userId}")
-    public Mono<ResponseEntity<String>> deleteUser(@PathVariable String userId) {
-        return authorityService.deleteByUserId(userId)
-                .then(userService.deleteById(userId))
-                .then(Mono.just(ResponseEntity.ok("Successfully deleted recipe with ID " + userId)));
+    @Operation(summary = "Delete a user", description = "Specify the username, to delete the user you want.")
+    @DeleteMapping("/users/{username}")
+    public Mono<ResponseEntity<String>> deleteUser(@PathVariable String username) {
+        return userService.findByUsername(username)
+                .flatMap(user ->
+                        authorityService.deleteByUserId(user.getId())
+                                .then(userService.deleteById(user.getId()))
+                                .then(Mono.just(ResponseEntity.ok("Successfully deleted user with username: " + username)))
+                )
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()))
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete user: " + e.getMessage())));
     }
 }

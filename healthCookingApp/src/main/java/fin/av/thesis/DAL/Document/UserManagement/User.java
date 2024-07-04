@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.MongoId;
 
@@ -20,9 +21,11 @@ public class User {
     private String id;
     private String firstName;
     private String lastName;
+    @Indexed(unique = true)
     private String username;
     private String password;
     private boolean enabled;
+    @Indexed(unique = true)
     private String email;
     private String phoneNumber;
     private Set<Authority> authorities;

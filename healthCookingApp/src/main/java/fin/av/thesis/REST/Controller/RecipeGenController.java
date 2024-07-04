@@ -2,14 +2,12 @@ package fin.av.thesis.REST.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fin.av.thesis.BL.Service.IngredientService;
-import fin.av.thesis.BL.Service.OpenAIService;
-import fin.av.thesis.BL.Service.RecipeService;
-import fin.av.thesis.BL.Service.UserHealthTrackerService;
+import fin.av.thesis.BL.Service.*;
 import fin.av.thesis.DAL.Document.Nutrition.*;
 import fin.av.thesis.DAL.Document.OpenAI.RecipePrompt;
 import fin.av.thesis.DAL.Document.OpenAI.SimpleIngredient;
 import fin.av.thesis.DAL.Document.OpenAI.SimpleRecipeResponse;
+import fin.av.thesis.DAL.Enum.SupportedLanguage;
 import fin.av.thesis.DTO.Response.RecipeResponseDTO;
 import fin.av.thesis.REST.Helper.HealthTrackingHelper;
 import fin.av.thesis.REST.Mapper.RequestMapper.RecipeRequestMapper;
@@ -32,16 +30,18 @@ public class RecipeGenController {
     private final OpenAIService openAIService;
     private final RecipeService recipeService;
     private final IngredientService ingredientService;
+    private final UserProfileService userProfileService;
     private final UserHealthTrackerService userHealthTrackerService;
     private final RecipeResponseMapper recipeResponseMapper;
     private final ObjectMapper objectMapper;
     private static final Logger log = LoggerFactory.getLogger(RecipeGenController.class);
 
 
-    public RecipeGenController(OpenAIService openAIService, RecipeService recipeService, IngredientService ingredientService, UserHealthTrackerService userHealthTrackerService, RecipeResponseMapper recipeResponseMapper, ObjectMapper objectMapper) {
+    public RecipeGenController(OpenAIService openAIService, RecipeService recipeService, IngredientService ingredientService, UserProfileService userProfileService, UserHealthTrackerService userHealthTrackerService, RecipeResponseMapper recipeResponseMapper, ObjectMapper objectMapper) {
         this.openAIService = openAIService;
         this.recipeService = recipeService;
         this.ingredientService = ingredientService;
+        this.userProfileService = userProfileService;
         this.userHealthTrackerService = userHealthTrackerService;
         this.recipeResponseMapper = recipeResponseMapper;
         this.objectMapper = objectMapper;
@@ -52,6 +52,17 @@ public class RecipeGenController {
     @Operation(summary = "Find all recipes", description = "Returns all recipes.")
     public Mono<ResponseEntity<List<RecipeResponseDTO>>> findAllRecipes() {
         return recipeService.findAll()
+                .collectList()
+                .map(recipes -> ResponseEntity.ok(recipes.stream()
+                        .map(recipeResponseMapper::RecipeToDTORecipeRes)
+                        .toList()));
+    }
+
+    @GetMapping("/recipesByLang/{language}")
+    @ResponseBody
+    @Operation(summary = "Find all recipes by language", description = "Returns all recipes by language.")
+    public Mono<ResponseEntity<List<RecipeResponseDTO>>> findAllRecipesByLang(@PathVariable String language) {
+        return recipeService.findAllByLanguage(language)
                 .collectList()
                 .map(recipes -> ResponseEntity.ok(recipes.stream()
                         .map(recipeResponseMapper::RecipeToDTORecipeRes)
@@ -93,84 +104,31 @@ public class RecipeGenController {
                 .map(ResponseEntity::ok);
     }
 
-    @PostMapping("/recipesByHT/{healthTrackerID}")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a new recipe", description = "Creates a new recipe and returns the created recipe.")
-    public Mono<ResponseEntity<?>> createRecipeUsingHT(@PathVariable String healthTrackerID, @Valid @RequestBody List<String> ingredients) {
-        return userHealthTrackerService.findById(healthTrackerID)
-                .flatMap(healthTracker -> {
-                    Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(healthTracker);
-                    Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(healthTracker);
-
-                    return Mono.zip(healthConditions, knownAllergies)
-                            .flatMap(tuple -> {
-                                RecipePrompt prompt = new RecipePrompt(healthTracker.getDiet(), tuple.getT1(), tuple.getT2(), ingredients);
-                                return openAIService.generateRecipes(prompt);
-                            })
-                            .flatMap(response -> {
-                                try {
-                                    String json = response.getChoices().getFirst().getMessage().getContent();
-                                    String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
-                                    SimpleRecipeResponse simpleRecipeResponse = objectMapper.readValue(processedJson, SimpleRecipeResponse.class);
-
-                                    return saveRecipe(simpleRecipeResponse,healthTracker.getId(), healthTracker.getDiet())
-                                            .map(savedRecipe -> ResponseEntity.ok().body(savedRecipe));
-                                } catch (JsonProcessingException e) {
-                                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
-                                }
-                            });
-                })
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
-    }
-
-    @PostMapping("/recipes/{userId}")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a new recipe", description = "Creates a new recipe and returns the created recipe.")
-    public Mono<ResponseEntity<?>> createRecipe(@PathVariable String userId, @Valid @RequestBody List<String> ingredients) {
-        return userHealthTrackerService.findByUserId(userId)
-                .flatMap(healthTracker -> {
-                    Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(healthTracker);
-                    Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(healthTracker);
-
-                    return Mono.zip(healthConditions, knownAllergies)
-                            .flatMap(tuple -> {
-                                RecipePrompt prompt = new RecipePrompt(healthTracker.getDiet(), tuple.getT1(), tuple.getT2(), ingredients);
-                                return openAIService.generateRecipes(prompt);
-                            })
-                            .flatMap(response -> {
-                                try {
-                                    String json = response.getChoices().getFirst().getMessage().getContent();
-                                    String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
-                                    SimpleRecipeResponse simpleRecipeResponse = objectMapper.readValue(processedJson, SimpleRecipeResponse.class);
-
-                                    return saveRecipe(simpleRecipeResponse,healthTracker.getId(), healthTracker.getDiet())
-                                            .map(savedRecipe -> ResponseEntity.ok().body(savedRecipe));
-                                } catch (JsonProcessingException e) {
-                                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
-                                }
-                            });
-                })
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
-    }
-
     //CREATE USING USERNAME
     @PostMapping("/recipesByUsername/{username}")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create a new recipe", description = "Creates a new recipe and returns the created recipe.")
-    public Mono<ResponseEntity<?>> createRecipeUsingUsername(@PathVariable String username, @Valid @RequestBody List<String> ingredients) {
+    public Mono<ResponseEntity<?>> createRecipeUsingUsername(@PathVariable String username,
+                                                             @Valid @RequestBody List<String> ingredients) {
         log.info(ingredients.toString());
         if (ingredients.isEmpty()) {
             return Mono.just(ResponseEntity.badRequest().body("Ingredients list cannot be empty"));
         }
-        return userHealthTrackerService.findHealthTrackerByUsername(username)
-                .flatMap(healthTracker -> {
+
+        Mono<UserHealthTracker> healthTrackerMono = userHealthTrackerService.findHealthTrackerByUsername(username);
+        Mono<SupportedLanguage> languageMono = getUserLanguage(username);
+
+        return Mono.zip(healthTrackerMono, languageMono)
+                .flatMap(tuple -> {
+                    UserHealthTracker healthTracker = tuple.getT1();
+                    SupportedLanguage language = tuple.getT2();
                     Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(healthTracker);
                     Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(healthTracker);
 
                     return Mono.zip(healthConditions, knownAllergies)
-                            .flatMap(tuple -> {
-                                RecipePrompt prompt = new RecipePrompt(healthTracker.getDiet(), tuple.getT1(), tuple.getT2(), ingredients);
-                                return openAIService.generateRecipes(prompt);
+                            .flatMap(conditionTuple -> {
+                                RecipePrompt prompt = new RecipePrompt(healthTracker.getDiet(), conditionTuple.getT1(), conditionTuple.getT2(), ingredients);
+                                return openAIService.generateRecipes(prompt, language);
                             })
                             .flatMap(response -> {
                                 try {
@@ -179,7 +137,7 @@ public class RecipeGenController {
                                     log.info(processedJson);
                                     SimpleRecipeResponse simpleRecipeResponse = objectMapper.readValue(processedJson, SimpleRecipeResponse.class);
 
-                                    return saveRecipe(simpleRecipeResponse, healthTracker.getId(), healthTracker.getDiet())
+                                    return saveRecipe(simpleRecipeResponse, healthTracker.getId(), healthTracker.getDiet(),language)
                                             .map(savedRecipe -> ResponseEntity.ok().body(savedRecipe));
                                 } catch (JsonProcessingException e) {
                                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing JSON: " + e.getMessage()));
@@ -189,7 +147,7 @@ public class RecipeGenController {
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
     }
 
-    private Mono<Recipe> saveRecipe(SimpleRecipeResponse recipeResponse, String healthTrackerId, String diet) {
+    private Mono<Recipe> saveRecipe(SimpleRecipeResponse recipeResponse, String healthTrackerId, String diet, SupportedLanguage language) {
         return convertAndSaveIngredients(recipeResponse.getIngredients())
                 .flatMap(ingredientEntries -> {
                     Recipe recipe = new Recipe();
@@ -212,6 +170,7 @@ public class RecipeGenController {
                     recipe.setServings(recipeResponse.getServings());
                     recipe.setNotes(recipeResponse.getNotes());
                     recipe.setHealthWarning(recipeResponse.getHealthWarning());
+                    recipe.setLanguage(language.toString());
 
                     return recipeService.save(recipe);
                 });
@@ -260,4 +219,11 @@ public class RecipeGenController {
                 .switchIfEmpty(Mono.just(ResponseEntity.ok("Recipe not found with ID: " + recipeId)))
                 .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to disassociate recipe with ID " + recipeId + ": " + e.getMessage())));
     }
+
+    private Mono<SupportedLanguage> getUserLanguage(String username) {
+        return userProfileService.findUserProfileByUsername(username)
+                .map(UserProfile::getLanguage)
+                .switchIfEmpty(Mono.just(SupportedLanguage.EN));
+    }
+
 }

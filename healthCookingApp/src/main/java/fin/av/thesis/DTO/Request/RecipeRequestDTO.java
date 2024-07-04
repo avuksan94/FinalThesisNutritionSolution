@@ -46,4 +46,6 @@ public class RecipeRequestDTO {
     private String notes;
 
     private String healthWarning;
+
+    private String language;
 }

@@ -28,5 +28,4 @@ public class HealthCookingAppApplication {
 	public BCryptPasswordEncoder bCryptPasswordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
-
 }
