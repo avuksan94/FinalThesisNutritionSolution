@@ -36,7 +36,7 @@ public class JwtToken implements Authentication {
 
     @Override
     public Object getDetails() {
-        return null;  // Optionally include more details if necessary
+        return null;
     }
 
     @Override
@@ -60,7 +60,7 @@ public class JwtToken implements Authentication {
     }
 
     public JwtToken withAuthenticated(boolean isAuthenticated) {
-        setAuthenticated(isAuthenticated);  // Use the setter to ensure any associated logic is handled
+        setAuthenticated(isAuthenticated);
         return this;
     }
 }

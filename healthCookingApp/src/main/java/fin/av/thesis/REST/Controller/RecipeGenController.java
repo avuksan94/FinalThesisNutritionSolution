@@ -10,8 +10,8 @@ import fin.av.thesis.DAL.Document.OpenAI.SimpleRecipeResponse;
 import fin.av.thesis.DAL.Enum.SupportedLanguage;
 import fin.av.thesis.DTO.Response.RecipeResponseDTO;
 import fin.av.thesis.REST.Helper.HealthTrackingHelper;
-import fin.av.thesis.REST.Mapper.RequestMapper.RecipeRequestMapper;
 import fin.av.thesis.REST.Mapper.ResponseMapper.RecipeResponseMapper;
+import fin.av.thesis.UTIL.JsonUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -133,7 +133,7 @@ public class RecipeGenController {
                             .flatMap(response -> {
                                 try {
                                     String json = response.getChoices().getFirst().getMessage().getContent();
-                                    String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
+                                    String processedJson = JsonUtil.convertFractionsToDecimalGPT(json);
                                     log.info(processedJson);
                                     SimpleRecipeResponse simpleRecipeResponse = objectMapper.readValue(processedJson, SimpleRecipeResponse.class);
 

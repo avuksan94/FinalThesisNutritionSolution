@@ -5,4 +5,6 @@ import reactor.core.publisher.Mono;
 
 public interface TokenProvider {
     public Mono<String> generateToken(UserDetails userDetails);
+    Mono<String> generateRefreshToken(UserDetails userDetails);
+    Mono<Boolean> validateRefreshToken(String token);
 }

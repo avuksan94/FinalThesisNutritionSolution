@@ -10,6 +10,7 @@ import fin.av.thesis.DAL.Enum.SupportedLanguage;
 import fin.av.thesis.DTO.Response.MealPlanResponseDTO;
 import fin.av.thesis.REST.Helper.HealthTrackingHelper;
 import fin.av.thesis.REST.Mapper.ResponseMapper.MealPlanResponseMapper;
+import fin.av.thesis.UTIL.JsonUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -104,7 +105,7 @@ public class MealPlanGenController {
                                         .flatMap(response -> {
                                             try {
                                                 String json = response.getChoices().getFirst().getMessage().getContent();
-                                                String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
+                                                String processedJson = JsonUtil.convertFractionsToDecimalGPT(json);
                                                 log.info(processedJson);
                                                 MealPlanResponse mealResponse = objectMapper.readValue(processedJson, MealPlanResponse.class);
 

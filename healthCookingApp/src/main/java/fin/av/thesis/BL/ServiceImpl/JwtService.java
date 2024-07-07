@@ -68,6 +68,30 @@ public class JwtService implements TokenProvider {
                 .doOnError(e -> logger.error("Error generating token: ", e));
     }
 
+    @Override
+    public Mono<String> generateRefreshToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("sub", userDetails.getUsername());
+        return Mono.fromCallable(() -> createRefreshToken(claims))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private String createRefreshToken(Map<String, Object> claims) {
+        long expirationTimeLong = 1000 * 60 * 60 * 24 * 14; // 14 days
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTimeLong))
+                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .compact();
+    }
+
+    @Override
+    public Mono<Boolean> validateRefreshToken(String token) {
+        return Mono.fromCallable(() -> !isTokenExpired(token).block())
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
     public Mono<List<SimpleGrantedAuthority>> extractRoles(String token) {
         return extractAllClaims(token).map(claims -> {
             List<String> roles = claims.get("roles", List.class);
@@ -81,7 +105,7 @@ public class JwtService implements TokenProvider {
                 .setClaims(claims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1h
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
                 .compact();
     }

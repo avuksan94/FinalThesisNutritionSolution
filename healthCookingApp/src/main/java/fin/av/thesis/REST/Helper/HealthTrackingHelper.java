@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 
 public class HealthTrackingHelper {
     public static Mono<List<String>> getAllergyListMono(UserHealthTrackerRequestDTO userHt) {
-        return Mono.just(userHt.getKnownAllergies())
+        return Mono.just(userHt.knownAllergies())
                 .flatMapMany(Flux::fromIterable)
                 .map(Enum::name)
                 .collectList();
@@ -29,7 +29,7 @@ public class HealthTrackingHelper {
     }
 
     public static Mono<List<String>> getHealthListMono(UserHealthTrackerRequestDTO userHt) {
-        return Mono.just(userHt.getHealthConditions())
+        return Mono.just(userHt.healthConditions())
                 .flatMapMany(Flux::fromIterable)
                 .map(Enum::name)
                 .collectList();
@@ -40,20 +40,6 @@ public class HealthTrackingHelper {
                 .flatMapMany(Flux::fromIterable)
                 .map(Enum::name)
                 .collectList();
-    }
-
-    public static String convertFractionsToDecimal(String json) {
-        Pattern pattern = Pattern.compile("(\"quantity\":\\s*)(\\d+)/(\\d+)");
-        Matcher matcher = pattern.matcher(json);
-        StringBuffer sb = new StringBuffer();
-        while (matcher.find()) {
-            double numerator = Double.parseDouble(matcher.group(2));
-            double denominator = Double.parseDouble(matcher.group(3));
-            double decimal = numerator / denominator;
-            matcher.appendReplacement(sb, matcher.group(1) + decimal);
-        }
-        matcher.appendTail(sb);
-        return sb.toString();
     }
 
     public static void updateHealthWarningFromResponse(HealthWarning existingHealthWarning, HealthWarningResponse healthWarningResponse) {

@@ -7,7 +7,8 @@ public  class PromptConsts {
             "Use ONLY the ingredients provided in the list: [%s], and ensure none of the recipes include any items that are not compliant with the specified diet or allergens related to: %s. Explicitly exclude" +
             " any ingredients that are not suitable for the specified diet, regardless of their presence in the list. Each recipe must be complete and should include: the title, " +
             "description, a list of the provided ingredients with exact quantities in decimal format (not fractions), unit(for measurement), detailed preparation_steps that only involve these ingredients, a nutrition_summary including " +
-            "calories, protein, carbs, fats, fiber, and sugar amounts, cooking_time, servings, any special_notes and health_warning(If the recipe could harm the user based on the health conditions or allergies that he has, please warn the user that he needs to consult a doctor!) that tells the user that if item is dangerous for their health based on allergies or health condition." +
+            "calories, protein, carbs, fats, fiber, and sugar amounts, cooking_time(int), servings, any special_notes and health_warning" +
+            "(If the recipe could harm the user based on the health conditions or allergies that he has, please warn the user that he needs to consult a doctor,otherwise dont write about the need of consulting with a doctor!) that tells the user that if item is dangerous for their health based on allergies or health condition." +
             " The format must adhere to JSON standards without any comments or non-standard elements, and avoid introducing " +
             "any ingredients not explicitly listed as suitable for the specified diet." +
             "(if no health warning or notes exist set their values to null)!";
@@ -16,7 +17,8 @@ public  class PromptConsts {
             "Koristite SAMO sastojke navedene na popisu: [%s], i osigurajte da recepti ne sadrže nikakve sastojke koji nisu u skladu sa specificiranom dijetom ili alergenima povezanim sa: %s. Izričito isključite " +
             "sve sastojke koji nisu prikladni za specificiranu dijetu, bez obzira na njihovu prisutnost na popisu. Svaki recept mora biti potpun i treba uključivati: title, " +
             "description, list provided ingredients with exact quantities in decimal format (not fractions), unit (for measurement), detailed preparation_steps that only involve these ingredients, a nutrition_summary including " +
-            "calories, protein, carbs, fats, fiber, and sugar amounts, cooking_time, servings, any special_notes and health_warning(Ako recept može naštetiti korisniku na temelju zdravstvenih stanja ili alergija koje korisnik ima, molim upozorite korisnika da se treba posavjetovati s liječnikom!) that tells the user if the item is dangerous for their health based on allergies or health condition." +
+            "calories, protein, carbs, fats, fiber, and sugar amounts, cooking_time(int), servings, any special_notes and health_warning" +
+            "(Ako recept može naštetiti korisniku na temelju zdravstvenih stanja ili alergija koje korisnik ima, molim upozorite korisnika da se treba posavjetovati s liječnikom, inaće nemoj pisati o potrebi savjetovanja sa liječnikom!) that tells the user if the item is dangerous for their health based on allergies or health condition." +
             " Format mora biti u skladu s JSON standardima bez ikakvih komentara ili nestandardnih elemenata, i izbjegavati uvođenje " +
             "bilo kojih sastojaka koji nisu izričito navedeni kao prikladni za specificiranu dijetu." +
             "(ako ne postoji zdravstveno upozorenje ili napomene postavite njihove vrijednosti na null)!";
@@ -26,7 +28,7 @@ public  class PromptConsts {
             "Use ONLY the ingredients provided in the list: [%s], and ensure none of the recipes include any items that are not compliant with the specified diet or allergens related to: %s. EXPLICITLY exclude" +
             " any ingredients that are not suitable for the specified diet, regardless of their presence in the list. Each recipe must be complete and should include: the meal (breakfast, lunch, dinner), the title, " +
             "description, a list of the provided ingredients with exact quantities in decimal format (not fractions), unit(for measurement), detailed preparation_steps that only involve these ingredients, a nutrition_summary including " +
-            "calories, protein, carbs, fats, fiber, and sugar amounts, cooking_time, servings, and health_warning that tells the user that if item is dangerous for their health based on allergies or health condition." +
+            "calories, protein, carbs, fats, fiber, and sugar amounts, cooking_time(int), servings, and health_warning that tells the user that if item is dangerous for their health based on allergies or health condition." +
             " The format must adhere to JSON standards without any comments or non-standard elements, and avoid introducing " +
             "any ingredients not explicitly listed as suitable for the specified diet. " +
             "Format the output to have 'meals', with the mentioned details.Do not leave out any of these JSON properties,and also include any health warnings and notes " +
@@ -37,7 +39,7 @@ public  class PromptConsts {
             "Use ONLY the ingredients provided in the list: [%s], and ensure none of the recipes include any items that are not compliant with the specified diet or allergens related to: %s. EXPLICITLY exclude" +
             " any ingredients that are not suitable for the specified diet, regardless of their presence in the list. Each recipe must be complete and should include: the meal (breakfast, lunch, dinner), the title, " +
             "description, a list of the provided ingredients with exact quantities in decimal format (not fractions), unit(for measurement), detailed preparation_steps that only involve these ingredients, a nutrition_summary including " +
-            "calories, protein, carbs, fats, fiber, and sugar amounts, cooking_time, servings, and health_warning that tells the user that if item is dangerous for their health based on allergies or health condition." +
+            "calories, protein, carbs, fats, fiber, and sugar amounts, cooking_time(int), servings, and health_warning that tells the user that if item is dangerous for their health based on allergies or health condition." +
             " The format must adhere to JSON standards without any comments or non-standard elements, and avoid introducing " +
             "any ingredients not explicitly listed as suitable for the specified diet. " +
             "Format the output to have 'meals', with the mentioned details.Do not leave out any of these JSON properties,and also include any health warnings and notes " +

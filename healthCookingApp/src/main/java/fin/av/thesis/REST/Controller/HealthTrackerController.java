@@ -8,13 +8,13 @@ import fin.av.thesis.DAL.Document.Nutrition.UserHealthTracker;
 import fin.av.thesis.DAL.Document.Nutrition.UserProfile;
 import fin.av.thesis.DAL.Document.OpenAI.DietPrompt;
 import fin.av.thesis.DAL.Document.OpenAI.HealthWarningResponse;
-import fin.av.thesis.DAL.Document.UserManagement.User;
 import fin.av.thesis.DAL.Enum.SupportedLanguage;
 import fin.av.thesis.DTO.Request.UserHealthTrackerRequestDTO;
 import fin.av.thesis.DTO.Response.UserHealthTrackerResponseDTO;
 import fin.av.thesis.REST.Mapper.RequestMapper.UserHealthTrackerRequestMapper;
 import fin.av.thesis.REST.Mapper.ResponseMapper.UserHealthTrackerResponseMapper;
 import fin.av.thesis.REST.Helper.HealthTrackingHelper;
+import fin.av.thesis.UTIL.JsonUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -98,26 +98,33 @@ public class HealthTrackerController {
     public Mono<ResponseEntity<?>> createUserHTByUsername(@Valid @RequestBody UserHealthTrackerRequestDTO userHt, @PathVariable String username) {
         return userService.findByUsername(username)
                 .flatMap(user -> {
-                    userHt.setUserId(user.getId());
-                    Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(userHt);
-                    Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(userHt);
+                    // Create a new instance of UserHealthTrackerRequestDTO with updated userId
+                    UserHealthTrackerRequestDTO updatedUserHt = new UserHealthTrackerRequestDTO(
+                            user.getId(), // Set new userId
+                            userHt.diet(),
+                            userHt.knownAllergies(),
+                            userHt.healthConditions()
+                    );
+
+                    Mono<List<String>> healthConditions = HealthTrackingHelper.getHealthListMono(updatedUserHt);
+                    Mono<List<String>> knownAllergies = HealthTrackingHelper.getAllergyListMono(updatedUserHt);
                     Mono<SupportedLanguage> lang = getUserLanguage(username);
 
                     return Mono.zip(healthConditions, knownAllergies, lang)
                             .flatMap(tuple -> {
-                                DietPrompt prompt = new DietPrompt(userHt.getDiet(), tuple.getT1(), tuple.getT2());
+                                DietPrompt prompt = new DietPrompt(updatedUserHt.diet(), tuple.getT1(), tuple.getT2());
                                 return openAIService.checkDietCompatibility(prompt, tuple.getT3());
                             })
                             .flatMap(response -> {
                                 try {
                                     String json = response.getChoices().getFirst().getMessage().getContent();
-                                    String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
+                                    String processedJson = JsonUtil.convertFractionsToDecimalGPT(json);
                                     HealthWarningResponse healthWarningResponse = objectMapper.readValue(processedJson, HealthWarningResponse.class);
                                     HealthWarning newWarning = HealthTrackingHelper.getHealthWarning(healthWarningResponse);
 
                                     return healthWarningService.save(newWarning)
                                             .flatMap(savedWarning -> {
-                                                UserHealthTracker newTracker = userHealthTrackerRequestMapper.DTOUserHTReqToUserHT(userHt);
+                                                UserHealthTracker newTracker = userHealthTrackerRequestMapper.DTOUserHTReqToUserHT(updatedUserHt);
                                                 newTracker.setHealthWarningId(savedWarning.getId());
 
                                                 return userHealthTrackerService.save(newTracker)
@@ -140,13 +147,13 @@ public class HealthTrackerController {
 
         return Mono.zip(healthConditions, knownAllergies, lang)
                 .flatMap(tuple -> {
-                    DietPrompt prompt = new DietPrompt(userHt.getDiet(), tuple.getT1(), tuple.getT2());
+                    DietPrompt prompt = new DietPrompt(userHt.diet(), tuple.getT1(), tuple.getT2());
                     return openAIService.checkDietCompatibility(prompt, tuple.getT3());
                 })
                 .flatMap(response -> {
                     try {
                         String json = response.getChoices().getFirst().getMessage().getContent();
-                        String processedJson = HealthTrackingHelper.convertFractionsToDecimal(json);
+                        String processedJson = JsonUtil.convertFractionsToDecimalGPT(json);
                         HealthWarningResponse healthWarningResponse = objectMapper.readValue(processedJson, HealthWarningResponse.class);
 
                         return userHealthTrackerService.findHealthTrackerByUsername(username)

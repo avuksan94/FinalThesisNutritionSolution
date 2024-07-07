@@ -2,21 +2,13 @@ package fin.av.thesis.DTO.Shared;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.validation.constraints.Size;
 
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-public class IngredientEntryDTO {
-    private String ingredientId;
-    private String name;
-    @Min(value = 0, message = "Quantity must be non-negative!")
-    private double quantity;
-    @NotBlank(message = "Unit is required!")
-    private String unit;
-    private String notes;
-}
+public record IngredientEntryDTO(
+        String ingredientId,
+        @NotBlank(message = "Ingredient name is required!")
+        @Size(max = 50, message = "Ingredient name must be at most 50 characters") String name,
+        @Min(value = 0, message = "Quantity must be non-negative!") double quantity,
+        @NotBlank(message = "Unit is required!") String unit,
+        String notes
+) {}

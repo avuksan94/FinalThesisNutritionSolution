@@ -72,7 +72,7 @@ public class UserProfileController {
                 .flatMap(user -> {
                     UserProfile userProfile = new UserProfile();
                     userProfile.setUserId(user.getId());
-                    userProfile.setLanguage(userProfileRequestDTO.getLanguage());
+                    userProfile.setLanguage(userProfileRequestDTO.language());
 
                     return userProfileService.save(userProfile);
                 })

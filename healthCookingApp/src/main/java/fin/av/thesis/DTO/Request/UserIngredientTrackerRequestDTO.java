@@ -1,18 +1,13 @@
 package fin.av.thesis.DTO.Request;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.springframework.data.mongodb.core.mapping.Field;
-import org.springframework.data.mongodb.core.mapping.MongoId;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-public class UserIngredientTrackerRequestDTO {
-    private String name;
-    private double quantity;
-    private String unit;
-}
+public record UserIngredientTrackerRequestDTO(
+        @NotBlank(message = "Ingredient name is required")
+        @Size(max = 50, message = "Ingredient name must be at most 50 characters") String name,
+
+        @Min(value = 0, message = "Quantity must be non-negative!")double quantity,
+        @NotBlank(message = "Unit is required!") String unit
+) {}

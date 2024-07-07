@@ -8,4 +8,9 @@ import lombok.*;
 @AllArgsConstructor(access = AccessLevel.PUBLIC)
 public class JwtResponse {
     private String token;
+    private String refreshToken;
+
+    public JwtResponse(String accessToken) {
+        this.token = accessToken;
+    }
 }

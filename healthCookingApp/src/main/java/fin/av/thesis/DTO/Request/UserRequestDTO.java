@@ -1,31 +1,20 @@
 package fin.av.thesis.DTO.Request;
 
+import jakarta.validation.constraints.*;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class UserRequestDTO {
-    @NotBlank(message = "First name is required!")
-    private String firstName;
+public record UserRequestDTO(
+        @NotBlank(message = "First name is required!")
+        @Size(max = 50, message = "First name must be at most 50 characters") String firstName,
+        @NotBlank(message = "Last name is required!")
+        @Size(max = 50, message = "Last name must be at most 50 characters") String lastName,
+        @NotBlank(message = "Username is required!") String username,
+        @NotBlank(message = "Passoword is required!")String password,
+        boolean enabled,
+        @NotBlank(message = "Email is required!")
+        @Email(message = "Must be a valid email address!") String email,
+        @NotBlank(message = "Phone number is required!") String phoneNumber
+) {}
 
-    @NotBlank(message = "Last name is required!")
-    private String lastName;
-
-    @NotBlank(message = "Username is required!")
-    private String username;
-
-    private String password;
-    private boolean enabled;
-    @NotBlank(message = "Email is required!")
-    @Email(message = "Must be a valid email address!")
-    private String email;
-    @NotBlank(message = "Phone number is required!")
-    private String phoneNumber;
-}
