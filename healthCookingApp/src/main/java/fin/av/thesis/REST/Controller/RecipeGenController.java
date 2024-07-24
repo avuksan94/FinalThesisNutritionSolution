@@ -207,17 +207,20 @@ public class RecipeGenController {
                         .then(recipeService.deleteById(recipeId))
                         .thenReturn(ResponseEntity.ok("Successfully deleted recipe and all associated ingredients with ID " + recipeId)))
                 .switchIfEmpty(Mono.just(ResponseEntity.ok("Recipe not found with ID: " + recipeId)))
-                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete recipe with ID " + recipeId + ": " + e.getMessage())));
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Failed to delete recipe with ID " + recipeId + ": " + e.getMessage())));
     }
 
     @ResponseBody
-    @Operation(summary = "Soft delete a recipe", description = "Specify the recipe ID to disassociate the recipe from the user's health tracker without removing it from the database.")
+    @Operation(summary = "Soft delete a recipe", description = "Specify the recipe ID to disassociate the " +
+            "recipe from the user's health tracker without removing it from the database.")
     @DeleteMapping("/recipesByUserSoft/{recipeId}")
     public Mono<ResponseEntity<String>> softDeleteRecipe(@PathVariable String recipeId) {
         return recipeService.softDeleteById(recipeId)
                 .thenReturn(ResponseEntity.ok("Recipe disassociated successfully with ID " + recipeId))
                 .switchIfEmpty(Mono.just(ResponseEntity.ok("Recipe not found with ID: " + recipeId)))
-                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to disassociate recipe with ID " + recipeId + ": " + e.getMessage())));
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Failed to disassociate recipe with ID " + recipeId + ": " + e.getMessage())));
     }
 
     private Mono<SupportedLanguage> getUserLanguage(String username) {

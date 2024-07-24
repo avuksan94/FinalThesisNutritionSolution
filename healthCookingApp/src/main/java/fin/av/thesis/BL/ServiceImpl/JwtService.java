@@ -109,17 +109,4 @@ public class JwtService implements TokenProvider {
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
                 .compact();
     }
-
-    public Mono<Boolean> validateToken(String token, UserDetails userDetails) {
-        Mono<String> extractedUsername = extractUsername(token);
-        Mono<String> userDetailsUsername = Mono.just(userDetails.getUsername());
-        Mono<Boolean> tokenExpired = isTokenExpired(token);
-
-        return Mono.zip(extractedUsername, userDetailsUsername, tokenExpired)
-                .map(tuple -> {
-                    boolean usernamesMatch = tuple.getT1().equals(tuple.getT2());
-                    boolean notExpired = !tuple.getT3();
-                    return usernamesMatch && notExpired;
-                });
-    }
 }

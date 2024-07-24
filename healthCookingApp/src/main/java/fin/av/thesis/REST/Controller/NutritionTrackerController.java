@@ -121,8 +121,10 @@ public class NutritionTrackerController {
     }
 
     @PutMapping("/nutritionUpdateTrackersByUsername/{username}")
-    @Operation(summary = "Updates an nuttrition tracker based on the username", description = "Updates an nutrition tracker.")
-    public Mono<ResponseEntity<UserNutritionTrackerResponseDTO>> updateIngredient(@PathVariable String username, @Valid @RequestBody NutrientsDTO nutrients) {
+    @Operation(summary = "Updates an nutrition tracker based on the username",
+            description = "Updates an nutrition tracker.")
+    public Mono<ResponseEntity<UserNutritionTrackerResponseDTO>> updateIngredient
+            (@PathVariable String username, @Valid @RequestBody NutrientsDTO nutrients) {
         Calendar cal = getCurrentDate();
         return userNutritionTrackerService.updateNutritionalValues(
                         username,

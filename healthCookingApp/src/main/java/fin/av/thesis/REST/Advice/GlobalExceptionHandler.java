@@ -20,7 +20,8 @@ import java.util.Map;
 public class GlobalExceptionHandler {
     @ExceptionHandler(CustomNotFoundException.class)
     public Mono<ResponseEntity<CustomErrorResponse>> handleCustomNotFoundException(CustomNotFoundException ex) {
-        return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(createErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage())));
+        return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(createErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage())));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -41,12 +42,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public Mono<ResponseEntity<CustomErrorResponse>> handleGeneralException(Exception ex) {
         HttpStatus status = determineStatus(ex);
-        return Mono.just(ResponseEntity.status(status).body(createErrorResponse(status, "An unexpected error occurred")));
+        return Mono.just(ResponseEntity.status(status).body(createErrorResponse(status,
+                "An unexpected error occurred")));
     }
 
     @ExceptionHandler(DuplicateKeyException.class)
     public Mono<ResponseEntity<CustomErrorResponse>> handleDuplicateKeyException(DuplicateKeyException ex) {
-        CustomErrorResponse customErrorResponse = createErrorResponse(HttpStatus.BAD_REQUEST, "A user with the same username or email already exists.");
+        CustomErrorResponse customErrorResponse = createErrorResponse(HttpStatus.BAD_REQUEST,
+                "A user with the same username or email already exists.");
         return Mono.just(new ResponseEntity<>(customErrorResponse, HttpStatus.BAD_REQUEST));
     }
 

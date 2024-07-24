@@ -61,7 +61,7 @@ public class UserNutritionTrackerServiceImpl implements UserNutritionTrackerServ
                 .switchIfEmpty(Mono.error(new CustomNotFoundException("User with that username was not found: " + username)))
                 .flatMapMany(user -> {
                     Calendar cal = Calendar.getInstance();
-                    cal.add(Calendar.DATE, -7);  // 7 days to get the date range
+                    cal.add(Calendar.DATE, -7);
                     Date sevenDaysAgo = cal.getTime();
 
                     return userNutritionTrackerRepository.findByUserIdAndForDayGreaterThanEqual(user.getId(), sevenDaysAgo);

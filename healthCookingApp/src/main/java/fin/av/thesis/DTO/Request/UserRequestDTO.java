@@ -10,10 +10,9 @@ public record UserRequestDTO(
         @Size(max = 50, message = "First name must be at most 50 characters") String firstName,
         @NotBlank(message = "Last name is required!")
         @Size(max = 50, message = "Last name must be at most 50 characters") String lastName,
-        @NotBlank(message = "Username is required!") String username,
-        @NotBlank(message = "Passoword is required!")String password,
+        String username,
+        String password,
         boolean enabled,
-        @NotBlank(message = "Email is required!")
         @Email(message = "Must be a valid email address!") String email,
         @NotBlank(message = "Phone number is required!") String phoneNumber
 ) {}

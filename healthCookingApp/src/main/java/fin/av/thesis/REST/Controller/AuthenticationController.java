@@ -89,7 +89,7 @@ public class AuthenticationController {
                 .flatMap(authentication -> userDetailsService.findByUsername(authenticationRequest.getUsername()))
                 .flatMap(userDetails -> {
                     Mono<String> accessTokenMono = tokenProvider.generateToken(userDetails);
-                    Mono<RefreshToken> refreshTokenMono = refreshTokenService.createRefreshToken(userDetails.getUsername());  // Ensuring it's called and saved
+                    Mono<RefreshToken> refreshTokenMono = refreshTokenService.createRefreshToken(userDetails.getUsername());
                     return Mono.zip(accessTokenMono, refreshTokenMono,
                                     (accessToken, refreshToken) -> {
                                         return new JwtResponse(accessToken, refreshToken.getToken());

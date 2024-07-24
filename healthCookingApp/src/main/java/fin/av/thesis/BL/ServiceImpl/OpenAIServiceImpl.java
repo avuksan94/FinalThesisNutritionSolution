@@ -28,7 +28,6 @@ public class OpenAIServiceImpl implements OpenAIService {
     private WebClient webClient;
     @Autowired
     private ObjectMapper objectMapper;
-
     @Value("${openai.api.key}")
     private String apiKey;
 
@@ -122,11 +121,11 @@ public class OpenAIServiceImpl implements OpenAIService {
         String promptTemplate;
         switch (lang) {
             case SupportedLanguage.HR:
-                promptTemplate = PromptConsts.CHECK_DIET_COMPATIBILITY_SPOONACULAR_HR;
+                promptTemplate = PromptConsts.CHECK_DIET_COMPATIBILITY_HR;
                 break;
             case SupportedLanguage.EN:
             default:
-                promptTemplate = PromptConsts.CHECK_DIET_COMPATIBILITY_SPOONACULAR;
+                promptTemplate = PromptConsts.CHECK_DIET_COMPATIBILITY;
                 break;
         }
 

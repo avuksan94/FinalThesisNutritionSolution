@@ -98,9 +98,8 @@ public class HealthTrackerController {
     public Mono<ResponseEntity<?>> createUserHTByUsername(@Valid @RequestBody UserHealthTrackerRequestDTO userHt, @PathVariable String username) {
         return userService.findByUsername(username)
                 .flatMap(user -> {
-                    // Create a new instance of UserHealthTrackerRequestDTO with updated userId
                     UserHealthTrackerRequestDTO updatedUserHt = new UserHealthTrackerRequestDTO(
-                            user.getId(), // Set new userId
+                            user.getId(),
                             userHt.diet(),
                             userHt.knownAllergies(),
                             userHt.healthConditions()
