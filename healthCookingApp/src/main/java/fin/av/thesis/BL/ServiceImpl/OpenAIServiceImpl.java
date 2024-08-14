@@ -67,10 +67,10 @@ public class OpenAIServiceImpl implements OpenAIService {
 
         String promptTemplate;
         switch (lang) {
-            case SupportedLanguage.HR:
+            case HR:
                 promptTemplate = PromptConsts.HEALTHY_RECIPE_PROMPT_WITH_WARNING_01_HR;
                 break;
-            case SupportedLanguage.EN:
+            case EN:
             default:
                 promptTemplate = PromptConsts.HEALTHY_RECIPE_PROMPT_WITH_WARNING_01;
                 break;
@@ -92,10 +92,10 @@ public class OpenAIServiceImpl implements OpenAIService {
 
         String promptTemplate;
         switch (lang) {
-            case SupportedLanguage.HR:
+            case HR:
                 promptTemplate = PromptConsts.MEAL_PLAN_PROMPT_WITH_WARNING_01_HR;
                 break;
-            case SupportedLanguage.EN:
+            case EN:
             default:
                 promptTemplate = PromptConsts.MEAL_PLAN_PROMPT_WITH_WARNING_01;
                 break;
@@ -120,10 +120,10 @@ public class OpenAIServiceImpl implements OpenAIService {
 
         String promptTemplate;
         switch (lang) {
-            case SupportedLanguage.HR:
+            case HR:
                 promptTemplate = PromptConsts.CHECK_DIET_COMPATIBILITY_HR;
                 break;
-            case SupportedLanguage.EN:
+            case EN:
             default:
                 promptTemplate = PromptConsts.CHECK_DIET_COMPATIBILITY;
                 break;
