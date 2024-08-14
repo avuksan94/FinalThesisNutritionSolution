@@ -13,9 +13,12 @@ public class WebFluxConfig {
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
         corsConfig.addAllowedOrigin("https://finalthesisnutritionfrontend-production.up.railway.app");
+        corsConfig.setMaxAge(8000L);
         corsConfig.addAllowedHeader("*");
         corsConfig.addAllowedMethod("*");
         corsConfig.setAllowCredentials(true);
+
+
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfig);
