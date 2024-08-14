@@ -104,7 +104,7 @@ public class MealPlanGenController {
                                 return openAIService.generateDailyMealPlan(prompt, lang)
                                         .flatMap(response -> {
                                             try {
-                                                String json = response.getChoices().getFirst().getMessage().getContent();
+                                                String json = response.getChoices().get(0).getMessage().getContent();
                                                 String processedJson = JsonUtil.convertFractionsToDecimalGPT(json);
                                                 log.info(processedJson);
                                                 MealPlanResponse mealResponse = objectMapper.readValue(processedJson, MealPlanResponse.class);

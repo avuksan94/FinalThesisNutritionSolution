@@ -26,7 +26,7 @@ public class TestingRestController {
         return openAIService.generateRecipes(prompt,lang)
                 .map(response -> {
                     try {
-                        String json = response.getChoices().getFirst().getMessage().getContent();
+                        String json = response.getChoices().get(0).getMessage().getContent();
                         System.out.println(json);
                         String processedJson = JsonUtil.convertFractionsToDecimalGPT(json);
                         SimpleRecipeResponse recipeResponse = objectMapper.readValue(processedJson, SimpleRecipeResponse.class);
@@ -42,7 +42,7 @@ public class TestingRestController {
         return openAIService.generateDailyMealPlan(prompt,lang)
                 .map(response -> {
                     try {
-                        String json = response.getChoices().getFirst().getMessage().getContent();
+                        String json = response.getChoices().get(0).getMessage().getContent();
                         System.out.println(json);
                         String processedJson = JsonUtil.convertFractionsToDecimalGPT(json);
                         MealPlanResponse mealPlanResponse = objectMapper.readValue(processedJson, MealPlanResponse.class);
@@ -58,7 +58,7 @@ public class TestingRestController {
         return openAIService.checkDietCompatibility(prompt, lang)
                 .map(response -> {
                     try {
-                        String json = response.getChoices().getFirst().getMessage().getContent();
+                        String json = response.getChoices().get(0).getMessage().getContent();
                         System.out.println(json);
                         String processedJson = JsonUtil.convertFractionsToDecimalGPT(json);
                         HealthWarningResponse healthWarningResponse = objectMapper.readValue(processedJson, HealthWarningResponse.class);

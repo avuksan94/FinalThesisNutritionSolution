@@ -132,7 +132,7 @@ public class RecipeGenController {
                             })
                             .flatMap(response -> {
                                 try {
-                                    String json = response.getChoices().getFirst().getMessage().getContent();
+                                    String json = response.getChoices().get(0).getMessage().getContent();
                                     String processedJson = JsonUtil.convertFractionsToDecimalGPT(json);
                                     log.info(processedJson);
                                     SimpleRecipeResponse simpleRecipeResponse = objectMapper.readValue(processedJson, SimpleRecipeResponse.class);

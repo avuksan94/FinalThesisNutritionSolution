@@ -116,7 +116,7 @@ public class HealthTrackerController {
                             })
                             .flatMap(response -> {
                                 try {
-                                    String json = response.getChoices().getFirst().getMessage().getContent();
+                                    String json = response.getChoices().get(0).getMessage().getContent();
                                     String processedJson = JsonUtil.convertFractionsToDecimalGPT(json);
                                     HealthWarningResponse healthWarningResponse = objectMapper.readValue(processedJson, HealthWarningResponse.class);
                                     HealthWarning newWarning = HealthTrackingHelper.getHealthWarning(healthWarningResponse);
@@ -151,7 +151,7 @@ public class HealthTrackerController {
                 })
                 .flatMap(response -> {
                     try {
-                        String json = response.getChoices().getFirst().getMessage().getContent();
+                        String json = response.getChoices().get(0).getMessage().getContent();
                         String processedJson = JsonUtil.convertFractionsToDecimalGPT(json);
                         HealthWarningResponse healthWarningResponse = objectMapper.readValue(processedJson, HealthWarningResponse.class);
 
