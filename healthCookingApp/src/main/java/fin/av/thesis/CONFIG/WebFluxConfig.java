@@ -11,6 +11,7 @@ public class WebFluxConfig {
 
     @Bean
     public CorsWebFilter corsWebFilter() {
+        /*
         CorsConfiguration corsConfig = new CorsConfiguration();
         corsConfig.addAllowedOrigin("https://finalthesisnutritionfrontend-production.up.railway.app");
         corsConfig.setMaxAge(8000L);
@@ -25,6 +26,18 @@ public class WebFluxConfig {
         source.registerCorsConfiguration("/**", corsConfig);
 
         System.out.println("CORS configuration applied");
+
+        return new CorsWebFilter(source);
+         */
+
+        CorsConfiguration corsConfig = new CorsConfiguration();
+        corsConfig.setAllowCredentials(true);  // Allow credentials
+        corsConfig.addAllowedOriginPattern("*");  // Allow all origins
+        corsConfig.addAllowedHeader("*");  // Allow all headers
+        corsConfig.addAllowedMethod("*");  // Allow all methods
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", corsConfig);
 
         return new CorsWebFilter(source);
     }
